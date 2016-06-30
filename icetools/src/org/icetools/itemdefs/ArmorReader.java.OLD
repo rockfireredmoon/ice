@@ -1,0 +1,276 @@
+package org.icetools.itemdefs;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.text.ParseException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.Options;
+import org.icelib.BodyType;
+import org.icelib.ClothingDefinition;
+import org.icelib.ClothingKey;
+import org.icelib.Color;
+import org.icelib.DOSWriter;
+import org.icelib.Palette;
+import org.icelib.PalettedColor;
+import org.icelib.Region;
+import org.icesquirrel.interpreter.SquirrelInterpretedScript;
+import org.icesquirrel.runtime.SquirrelPrinter;
+import org.icesquirrel.runtime.SquirrelScript;
+
+/**
+ * Reads decompiled CNUT Item files (.txt) for amor and makes an clothing
+ * definition file
+ */
+public class ArmorReader {
+	final static Logger LOG = Logger.getLogger(ArmorReader.class.getName());
+
+	public enum State {
+		SEARCHING_FOR_HEADER, PARSING_OBJECTS, EXPECTING_NAME, DONE, EXPECTING_PALETTE, EXPECTING_BODY_TYPE, EXPECTING_COLOURS, READING_DISASSEMBLY, WAITING_FOR_DISASSEMBLY, READ_REGION_KEY, READ_REGION_VALUE
+	}
+
+	private State state;
+
+	private Map<String, ClothingDefinition> defs = new HashMap<String, ClothingDefinition>();
+
+	public void parse(File file) throws IOException, ParseException {
+		BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+		LOG.info("Parsing " + file);
+		String line;
+		int lineNo = 0;
+		int colIdx = 0;
+		ClothingDefinition def = null;
+		state = State.SEARCHING_FOR_HEADER;
+
+		Region regionKey = null;
+		Map<Region, String> regions = new HashMap<>();
+
+		try {
+			while ((line = in.readLine()) != null) {
+				lineNo++;
+				line = line.trim();
+				if (LOG.isLoggable(Level.FINE)) {
+					LOG.fine(String.format("[%4d] %15s  %s", lineNo, state, line));
+				}
+				String[] a = line.split("\\s+");
+				while (true) {
+					switch (state) {
+					case SEARCHING_FOR_HEADER:
+						if (line.startsWith("Object Definition Header")) {
+							state = State.PARSING_OBJECTS;
+						}
+						break;
+					case PARSING_OBJECTS:
+						if (line.startsWith("Argument Definition Header: ")) {
+							def = newDef(def, defs);
+							state = State.WAITING_FOR_DISASSEMBLY;
+						} else if (a[a.length - 1].equals("regions")) {
+							state = State.READ_REGION_KEY;
+						} else if (a[a.length - 1].equals("bodyType")) {
+							state = State.EXPECTING_BODY_TYPE;
+						} else if (isName(a[a.length - 1])) {
+							def = newDef(def, defs);
+							state = State.EXPECTING_NAME;
+							continue;
+						}
+						break;
+					case READ_REGION_KEY:
+						if (line.startsWith("Argument Definition Header")) {
+							state = State.PARSING_OBJECTS;
+							continue;
+						}
+						regionKey = Region.valueOf(a[a.length - 1].toUpperCase());
+						state = State.READ_REGION_VALUE;
+						break;
+					case READ_REGION_VALUE:
+						regions.put(regionKey, a[a.length - 1]);
+						state = State.READ_REGION_KEY;
+						break;
+					case EXPECTING_BODY_TYPE:
+						def.setBodyType(BodyType.valueOf(a[a.length - 1].toUpperCase()));
+						state = State.PARSING_OBJECTS;
+						break;
+					case EXPECTING_NAME:
+						def.setKey(new ClothingKey(a[a.length - 1]));
+						LOG.info("Asset " + def.getKey());
+						state = State.PARSING_OBJECTS;
+						break;
+					case WAITING_FOR_DISASSEMBLY:
+						if (line.startsWith("--- Disassembly")) {
+							state = State.READING_DISASSEMBLY;
+						}
+						break;
+					default:
+						// Reading disassembly
+						if (line.length() > 37) {
+							line = line.substring(37).trim();
+							String key = a[a.length - 1];
+							if (line.startsWith("GETK") && isDefKey(key)) {
+								// int idx = key.indexOf('.', 1);
+								// key = key.substring(idx + 1);
+								// def = defs.get(key);
+								// if (def == null) {
+								// throw new
+								// ParseException("No such definition as " + key
+								// + " when parsing disassembly of "
+								// + file, 0);
+								// }
+								state = State.READING_DISASSEMBLY;
+							} else if (line.startsWith("LOAD ")) {
+								if (key.equals("palette")) {
+									state = State.EXPECTING_PALETTE;
+								} else if (key.equals("colors")) {
+									colIdx = 0;
+									state = State.EXPECTING_COLOURS;
+								} else if (key.equals("regions")) {
+									def.getRegions().putAll(regions);
+									regions.clear();
+								} else if (defs.containsKey(key)) {
+									def = defs.get(key);
+									//
+								} else {
+									throw new IllegalStateException("Unknown array " + key + " / " + def);
+								}
+							} else {
+								switch (state) {
+								case EXPECTING_PALETTE:
+									if (line.startsWith("APNDARRAY")) {
+										PalettedColor itemColor = new PalettedColor();
+										itemColor.setPalette(Palette.valueOf(key.substring(key.indexOf('.') + 1).toUpperCase()));
+										def.getColors().add(itemColor);
+									} else if (line.startsWith("NEWARRAY")) {
+										//
+									} else {
+										state = State.READING_DISASSEMBLY;
+										continue;
+									}
+									break;
+								case EXPECTING_COLOURS:
+									if (line.startsWith("APNDARRAY")) {
+										List<PalettedColor> cols = def.getColors();
+										if (colIdx < cols.size()) {
+											cols.get(colIdx++).setColor(new Color(key.substring(key.indexOf('.') + 1)));
+										} else {
+											PalettedColor itemColor = new PalettedColor();
+											itemColor.setColor(new Color(key.substring(key.indexOf('.') + 1)));
+											def.getColors().add(itemColor);
+										}
+									} else if (line.startsWith("NEWARRAY")) {
+										//
+									} else {
+										state = State.READING_DISASSEMBLY;
+										continue;
+									}
+									break;
+								}
+							}
+						}
+					}
+
+					// By default break out of loop
+					break;
+				}
+			}
+		} finally {
+			in.close();
+		}
+	}
+
+	private boolean isName(String string) {
+		return string.startsWith("Armor-");
+	}
+
+	private boolean isDefKey(String val) {
+		// return isValOrDotVal("AttachableTemplates.Item.", val) ||
+		// isValOrDotVal("AttachableTemplates.Particles.", val);
+		return isValOrDotVal("ClothingDef", val);
+	}
+
+	private boolean isValOrDotVal(String key, String val) {
+		return val.startsWith(key) || val.startsWith("." + key);
+	}
+
+	public void output(OutputStream out) {
+		// TODO BROKEN!
+		SquirrelScript ea = new SquirrelInterpretedScript();
+		for (ClothingDefinition d : defs.values()) {
+//			ea.put(d.getKey().getType(), d.toSquirrel());
+		}
+		DOSWriter pw = new DOSWriter(out);
+		SquirrelPrinter.format(pw, ea, 0);
+		pw.flush();
+	}
+
+	private ClothingDefinition newDef(ClothingDefinition def, Map<String, ClothingDefinition> defs) {
+		if (def != null) {
+			// System.out.println(def.toEObject().toString(false));
+			defs.put(def.getKey().getType(), def);
+		}
+		def = new ClothingDefinition();
+		return def;
+	}
+
+	public static CommandLine parseCommandLine(Options opts, String[] args) throws org.apache.commons.cli.ParseException {
+		CommandLineParser parse = new GnuParser();
+		CommandLine cmdLine = parse.parse(opts, args);
+
+		// Set logging level
+		Level level = Level.WARNING;
+		if (cmdLine.hasOption('S')) {
+			level = Level.OFF;
+		} else if (cmdLine.hasOption('Q')) {
+			level = Level.WARNING;
+		} else if (cmdLine.hasOption('V')) {
+			level = Level.INFO;
+		} else if (cmdLine.hasOption('D')) {
+			level = Level.FINE;
+		} else if (cmdLine.hasOption('T')) {
+			level = Level.FINEST;
+		}
+		Logger root = Logger.getLogger("");
+		Handler[] handlers = root.getHandlers();
+		for (Handler h : handlers) {
+			root.setLevel(level);
+			h.setLevel(level);
+		}
+		return cmdLine;
+	}
+
+	public static void main(String[] xargs) throws Exception {
+		Options opts = new Options();
+		opts.addOption("S", "silent", false, "Silent");
+		opts.addOption("T", "trace", false, "Debug logging");
+		opts.addOption("D", "debug", false, "Debug logging");
+		opts.addOption("V", "verbose", false, "Verbose logging");
+		opts.addOption("O", "output", true, "Output file");
+		CommandLine commandLIne = parseCommandLine(opts, xargs);
+		String[] args = commandLIne.getArgs();
+		ArmorReader ir = new ArmorReader();
+		for (String a : args) {
+			ir.parse(new File(a));
+		}
+		if (commandLIne.hasOption('O')) {
+			FileOutputStream fos = new FileOutputStream(new File(commandLIne.getOptionValue('O')));
+			try {
+				ir.output(fos);
+			} finally {
+				fos.close();
+			}
+		} else {
+			ir.output(System.out);
+		}
+	}
+}

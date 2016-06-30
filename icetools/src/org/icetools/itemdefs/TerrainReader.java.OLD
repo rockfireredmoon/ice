@@ -1,0 +1,160 @@
+package org.icetools.itemdefs;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.text.ParseException;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.Options;
+import org.icelib.DOSWriter;
+import org.icelib.Icelib;
+import org.icesquirrel.runtime.SquirrelPrinter;
+
+/**
+ * Reads decompiled CNUT Item files (.txt) for items and make a terrain
+ * environment file
+ */
+public class TerrainReader {
+//	final static Logger LOG = Logger.getLogger(TerrainReader.class.getName());
+//
+//	public enum State {
+//		SEARCHING_FOR_HEADER, PARSING_OBJECTS, EXPECTING_ENVIRONMENT, DONE, EXPECTING_LOC
+//	}
+//
+//	private State state;
+//	private TerrainEnvironment def = null;
+//	private String xy;
+//
+//	public void parse(File file) throws IOException, ParseException {
+//		BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+//		LOG.info("Parsing " + file);
+//		String line;
+//		int lineNo = 0;
+//		int colIdx = 0;
+//		state = State.SEARCHING_FOR_HEADER;
+//
+//		try {
+//			while ((line = in.readLine()) != null) {
+//				lineNo++;
+//				line = line.trim();
+//				if (LOG.isLoggable(Level.FINE)) {
+//					LOG.fine(String.format("[%4d] %15s  %s", lineNo, state, line));
+//				}
+//				String[] a = line.split("\\s+");
+//				while (true) {
+//					switch (state) {
+//					case SEARCHING_FOR_HEADER:
+//						if (line.startsWith("Object Definition Header")) {
+//							state = State.PARSING_OBJECTS;
+//							def = newDef(def);
+//						}
+//						break;
+//					case PARSING_OBJECTS:
+//						if (line.startsWith("Argument Definition Header: ")) {
+//							state = State.DONE;
+//							return;
+//						} else if (a[a.length - 1].equals("Environment")) {
+//							state = State.EXPECTING_ENVIRONMENT;
+//							break;
+//						} else if (a[a.length - 1].equals("TerrainPageDef")) {
+//							state = State.EXPECTING_LOC;
+//							break;
+//						} else {
+//							throw new ParseException("Unexpected object " + line, 0);
+//						}
+//					case EXPECTING_ENVIRONMENT:
+//						def.setEnvironment(a[a.length - 1]);
+//						LOG.info("Environment " + def.getEnvironment());
+//						state = State.PARSING_OBJECTS;
+//						break;
+//					case EXPECTING_LOC:
+//						String loc = a[a.length - 1];
+//						if (!loc.equals(xy)) {
+//							LOG.warning("Expected " + xy + ", but got " + loc);
+//						}
+//						state = State.PARSING_OBJECTS;
+//						break;
+//					}
+//
+//					// By default break out of loop
+//					break;
+//				}
+//			}
+//		} finally {
+//			in.close();
+//		}
+//	}
+//
+//	public void output(OutputStream out) {
+//		DOSWriter pw = new DOSWriter(out);
+//		SquirrelPrinter.format(pw, def.toTable(), 0);
+//		pw.flush();
+//	}
+//
+//	private TerrainEnvironment newDef(TerrainEnvironment def) {
+//		def = new TerrainEnvironment();
+//		return def;
+//	}
+//
+//	public static CommandLine parseCommandLine(Options opts, String[] args) throws org.apache.commons.cli.ParseException {
+//		CommandLineParser parse = new GnuParser();
+//		CommandLine cmdLine = parse.parse(opts, args);
+//
+//		// Set logging level
+//		Level level = Level.WARNING;
+//		if (cmdLine.hasOption('S')) {
+//			level = Level.OFF;
+//		} else if (cmdLine.hasOption('Q')) {
+//			level = Level.WARNING;
+//		} else if (cmdLine.hasOption('V')) {
+//			level = Level.INFO;
+//		} else if (cmdLine.hasOption('D')) {
+//			level = Level.FINE;
+//		} else if (cmdLine.hasOption('T')) {
+//			level = Level.FINEST;
+//		}
+//		Logger root = Logger.getLogger("");
+//		Handler[] handlers = root.getHandlers();
+//		for (Handler h : handlers) {
+//			root.setLevel(level);
+//			h.setLevel(level);
+//		}
+//		return cmdLine;
+//	}
+//
+//	public static void main(String[] xargs) throws Exception {
+//		Options opts = new Options();
+//		opts.addOption("S", "silent", false, "Silent");
+//		opts.addOption("T", "trace", false, "Debug logging");
+//		opts.addOption("D", "debug", false, "Debug logging");
+//		opts.addOption("V", "verbose", false, "Verbose logging");
+//		CommandLine commandLIne = parseCommandLine(opts, xargs);
+//		String[] args = commandLIne.getArgs();
+//		TerrainReader ir = new TerrainReader();
+//		for (String a : args) {
+//			File source = new File(a);
+//			String basename = Icelib.getBasename(source.getName());
+//			int idx = basename.lastIndexOf('_');
+//			String address = basename.substring(idx + 1);
+//			ir.xy = address;
+//			ir.parse(source);
+//			File out = new File(source.getParentFile(), basename + ".nut");
+//			FileOutputStream fos = new FileOutputStream(out);
+//			try {
+//				ir.output(fos);
+//			} finally {
+//				fos.close();
+//			}
+//		}
+//	}
+}

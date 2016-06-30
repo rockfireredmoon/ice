@@ -1,0 +1,347 @@
+package org.icetools.itemdefs;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.text.ParseException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.Options;
+import org.icelib.AttachableTemplateKey;
+import org.icelib.Color;
+import org.icelib.DOSWriter;
+import org.icelib.ItemDefinition;
+import org.icelib.Palette;
+import org.icelib.PalettedColor;
+import org.icesquirrel.interpreter.SquirrelInterpretedScript;
+import org.icesquirrel.runtime.SquirrelPrinter;
+import org.icesquirrel.runtime.SquirrelScript;
+
+/**
+ * Reads decompiled CNUT Item files (.txt) for items and makes an item
+ * definition file
+ */
+public class ItemReader {
+	final static Logger LOG = Logger.getLogger(ItemReader.class.getName());
+
+	public enum State {
+		SEARCHING_FOR_HEADER, PARSING_OBJECTS, EXPECTING_NAME, DONE, EXPECTING_TEMPLATE_NAME, EXPECTING_PALETTE, EXPECTING_COLOURS, READING_DISASSEMBLY, WAITING_FOR_DISASSEMBLY, EXPECTING_PARTICLES, EXPECTING_ILLUMINATED, EXPECTING_PARTICLE, EXPECTING_ANIMATED, EXPECTING_RIBBON, EXPECTING_WIDTH, EXPECTING_OFFSET, EXPECTING_ATTACH_POINTS
+	}
+
+	private State state;
+
+	private Map<String, ItemDefinition> defs = new HashMap<String, ItemDefinition>();
+
+	public void parse(File file) throws IOException, ParseException {
+		BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+		LOG.info("Parsing " + file);
+		String line;
+		int lineNo = 0;
+		int colIdx = 0;
+		ItemDefinition def = null;
+		state = State.SEARCHING_FOR_HEADER;
+
+		try {
+			while ((line = in.readLine()) != null) {
+				lineNo++;
+				line = line.trim();
+				if (LOG.isLoggable(Level.FINE)) {
+					LOG.fine(String.format("[%4d] %15s  %s", lineNo, state, line));
+				}
+				String[] a = line.split("\\s+");
+				while (true) {
+					switch (state) {
+					case SEARCHING_FOR_HEADER:
+						if (line.startsWith("Object Definition Header")) {
+							state = State.PARSING_OBJECTS;
+						}
+						break;
+					case PARSING_OBJECTS:
+						if (line.startsWith("Argument Definition Header: ")) {
+							def = newDef(def, defs);
+							state = State.WAITING_FOR_DISASSEMBLY;
+						} else if (isName(a[a.length - 1])) {
+							def = newDef(def, defs);
+							state = State.EXPECTING_NAME;
+							continue;
+						} else if (isTemplateName(a[a.length - 1])) {
+							state = State.EXPECTING_TEMPLATE_NAME;
+							continue;
+						}
+						break;
+					case EXPECTING_NAME:
+						def.setAsset(a[a.length - 1]);
+						LOG.info("Asset " + def.getAsset());
+						state = State.PARSING_OBJECTS;
+						break;
+					case EXPECTING_TEMPLATE_NAME:
+						AttachableTemplateKey attachable = new AttachableTemplateKey(a[a.length - 1]);
+						def.setAttachable(attachable);
+						state = State.PARSING_OBJECTS;
+						break;
+					case WAITING_FOR_DISASSEMBLY:
+						if (line.startsWith("--- Disassembly")) {
+							state = State.READING_DISASSEMBLY;
+						}
+						break;
+					default:
+						// Reading disassembly
+						if (line.length() > 37) {
+							line = line.substring(37).trim();
+							String key = a[a.length - 1];
+							if (line.startsWith("GETK") && isDefKey(key)) {
+								// int idx = key.indexOf('.', 1);
+								// key = key.substring(idx + 1);
+								// def = defs.get(key);
+								// if (def == null) {
+								// throw new
+								// ParseException("No such definition as " + key
+								// + " when parsing disassembly of "
+								// + file, 0);
+								// }
+								state = State.READING_DISASSEMBLY;
+							} else if (line.startsWith("LOAD ")) {
+								if (key.equals("palette")) {
+									state = State.EXPECTING_PALETTE;
+								} else if (key.equals("colors")) {
+									colIdx = 0;
+									state = State.EXPECTING_COLOURS;
+								} else if (key.equals("particles")) {
+									state = State.EXPECTING_PARTICLES;
+								} else if (key.equals("particle")) {
+									state = State.EXPECTING_PARTICLE;
+								} else if (key.equalsIgnoreCase("illuminated")) {
+									state = State.EXPECTING_ILLUMINATED;
+								} else if (key.equals("animated")) {
+									state = State.EXPECTING_ANIMATED;
+								} else if (key.equals("ribbon")) {
+									state = State.EXPECTING_RIBBON;
+								} else if (key.equals("width")) {
+									state = State.EXPECTING_WIDTH;
+								} else if (key.equals("offset")) {
+									state = State.EXPECTING_OFFSET;
+								} else if (key.equals("attachPoints")) {
+									state = State.EXPECTING_ATTACH_POINTS;
+								} else if (defs.containsKey(key)) {
+									def = defs.get(key);
+									//
+								} else {
+									throw new IllegalStateException("Unknown array " + key + " / " + def);
+								}
+							} else {
+								switch (state) {
+								case EXPECTING_PALETTE:
+									if (line.startsWith("APNDARRAY")) {
+										PalettedColor itemColor = new PalettedColor();
+										itemColor.setPalette(Palette.valueOf(key.substring(key.indexOf('.') + 1).toUpperCase()));
+										def.getColors().add(itemColor);
+									} else if (line.startsWith("NEWARRAY")) {
+										//
+									} else {
+										state = State.READING_DISASSEMBLY;
+										continue;
+									}
+									break;
+								case EXPECTING_COLOURS:
+									if (line.startsWith("APNDARRAY")) {
+										List<PalettedColor> cols = def.getColors();
+										if (colIdx < cols.size()) {
+											cols.get(colIdx++).setColor(new Color(key.substring(key.indexOf('.') + 1)));
+										} else {
+											PalettedColor itemColor = new PalettedColor();
+											itemColor.setColor(new Color(key.substring(key.indexOf('.') + 1)));
+											def.getColors().add(itemColor);
+										}
+									} else if (line.startsWith("NEWARRAY")) {
+										//
+									} else {
+										state = State.READING_DISASSEMBLY;
+										continue;
+									}
+									break;
+								case EXPECTING_PARTICLES:
+									if (line.startsWith("APNDARRAY")) {
+										// TOOD mulitples!
+										def.getParticles().add(key.substring(key.indexOf('.') + 1));
+									} else if (line.startsWith("NEWARRAY")) {
+										//
+									} else {
+										state = State.READING_DISASSEMBLY;
+										continue;
+									}
+									break;
+								case EXPECTING_ILLUMINATED:
+									if (line.startsWith("LOADBOOL")) {
+										def.setIlluminated(key.equalsIgnoreCase("true"));
+									} else {
+										state = State.READING_DISASSEMBLY;
+										continue;
+									}
+									break;
+								case EXPECTING_PARTICLE:
+									if (line.startsWith("LOADBOOL")) {
+										def.setParticle(key.equalsIgnoreCase("true"));
+									} else {
+										state = State.READING_DISASSEMBLY;
+										continue;
+									}
+									break;
+								case EXPECTING_ANIMATED:
+									if (line.startsWith("LOADBOOL")) {
+										def.setAnimated(key.equalsIgnoreCase("true"));
+									} else {
+										state = State.READING_DISASSEMBLY;
+										continue;
+									}
+									break;
+								case EXPECTING_RIBBON:
+									if (line.startsWith("NEWTABLE")) {
+										def.setRibbon(new ItemDefinition.Ribbon());
+									} else {
+										state = State.READING_DISASSEMBLY;
+										continue;
+									}
+									break;
+								case EXPECTING_WIDTH:
+									if (line.startsWith("LOADFLOAT")) {
+										def.getRibbon().setWidth(Float.parseFloat(key));
+									} else {
+										state = State.READING_DISASSEMBLY;
+										continue;
+									}
+									break;
+								case EXPECTING_OFFSET:
+									if (line.startsWith("LOADFLOAT")) {
+										def.getRibbon().setOffset(Float.parseFloat(key));
+									} else {
+										state = State.READING_DISASSEMBLY;
+										continue;
+									}
+									break;
+								case EXPECTING_ATTACH_POINTS:
+									if (line.startsWith("APNDARRAY")) {
+										// TOOD mulitples!
+										def.getAttachPoints().add(key.substring(key.indexOf('.') + 1));
+									} else if (line.startsWith("NEWARRAY")) {
+										//
+									} else {
+										state = State.READING_DISASSEMBLY;
+										continue;
+									}
+									break;
+								}
+							}
+						}
+					}
+
+					// By default break out of loop
+					break;
+				}
+			}
+		} finally {
+			in.close();
+		}
+	}
+
+	private boolean isName(String string) {
+		return string.startsWith("Armor-") || string.startsWith("Item-") || string.startsWith("Particle-");
+	}
+
+	private boolean isTemplateName(String string) {
+		return string.startsWith("Item.") || string.startsWith("Particle.");
+	}
+
+	private boolean isDefKey(String val) {
+		return isValOrDotVal("AttachableTemplates.Item.", val) || isValOrDotVal("AttachableTemplates.Particles.", val);
+	}
+
+	private boolean isValOrDotVal(String key, String val) {
+		return val.startsWith(key) || val.startsWith("." + key);
+	}
+
+	public void output(OutputStream out) {
+		// TODO broken!
+		SquirrelScript ea = new SquirrelInterpretedScript();
+		for (ItemDefinition d : defs.values()) {
+			LOG.info("Output: " + d.getItemName());
+//			ea.put(d.getAsset(), d.toSquirrel());
+		}
+		DOSWriter pw = new DOSWriter(out);
+		SquirrelPrinter.format(pw, ea, 0);
+		pw.flush();
+	}
+
+	private ItemDefinition newDef(ItemDefinition def, Map<String, ItemDefinition> defs) {
+		if (def != null) {
+			// System.out.println(def.toEObject().toString(false));
+			defs.put(def.getAsset(), def);
+		}
+		def = new ItemDefinition("");
+		return def;
+	}
+
+	public static CommandLine parseCommandLine(Options opts, String[] args) throws org.apache.commons.cli.ParseException {
+		CommandLineParser parse = new GnuParser();
+		CommandLine cmdLine = parse.parse(opts, args);
+
+		// Set logging level
+		Level level = Level.WARNING;
+		if (cmdLine.hasOption('S')) {
+			level = Level.OFF;
+		} else if (cmdLine.hasOption('Q')) {
+			level = Level.WARNING;
+		} else if (cmdLine.hasOption('V')) {
+			level = Level.INFO;
+		} else if (cmdLine.hasOption('D')) {
+			level = Level.FINE;
+		} else if (cmdLine.hasOption('T')) {
+			level = Level.FINEST;
+		}
+		Logger root = Logger.getLogger("");
+		Handler[] handlers = root.getHandlers();
+		for (Handler h : handlers) {
+			root.setLevel(level);
+			h.setLevel(level);
+		}
+		return cmdLine;
+	}
+
+	public static void main(String[] xargs) throws Exception {
+		Options opts = new Options();
+		opts.addOption("S", "silent", false, "Silent");
+		opts.addOption("T", "trace", false, "Debug logging");
+		opts.addOption("D", "debug", false, "Debug logging");
+		opts.addOption("V", "verbose", false, "Verbose logging");
+		opts.addOption("O", "output", true, "Output file");
+		CommandLine commandLIne = parseCommandLine(opts, xargs);
+		String[] args = commandLIne.getArgs();
+		ItemReader ir = new ItemReader();
+		for (String a : args) {
+			ir.parse(new File(a));
+		}
+		if (commandLIne.hasOption('O')) {
+			File file = new File(commandLIne.getOptionValue('O'));
+			FileOutputStream fos = new FileOutputStream(file);
+			LOG.info("Outputting to " + file);
+			try {
+				ir.output(fos);
+			} finally {
+				fos.close();
+			}
+		} else {
+			ir.output(System.out);
+		}
+	}
+}
