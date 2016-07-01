@@ -183,11 +183,11 @@
 	</repositories>
 	<packaging>pom</packaging>
 	<modules>
-		<module>../icetools</module>
-		<module>../icelib</module>
-		<module>../icetone</module>
-		<module>../icenet</module>
-		<module>../iceui</module>
-		<module>../icescripting</module>
+		<module>icetools</module>
+		<module>icelib</module>
+		<module>icetone</module>
+		<module>icenet</module>
+		<module>iceui</module>
+		<module>icescripting</module>
 	</modules>
 </project>
