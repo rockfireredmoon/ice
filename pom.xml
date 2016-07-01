@@ -163,7 +163,7 @@
 		</repository>
 		<repository>
 			<id>theanubianwar-snapshots</id>
-			<url>http://files.theanubianwar.com/maven/releases</url>
+			<url>http://files.theanubianwar.com/maven/snapshots</url>
 			<snapshots/>
 			<releases>
 				<enabled>false</enabled>
