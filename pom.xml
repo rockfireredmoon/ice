@@ -12,12 +12,24 @@
 		<jmonkey.version>3.0.10</jmonkey.version>
 		<iceloader.version>0.0.1-SNAPSHOT</iceloader.version>
 	</properties>
+	<distributionManagement>
+		<repository>
+			<id>theanubianwar-releases</id>
+			<name>The Anubian War - Releases Repository</name>
+			<url>scp://files.theanubianwar.com/srv/files.theanubianwar.com/public/htdocs/maven/releases</url>
+		</repository>
+		<snapshotRepository>
+			<id>theanubianwar-snapshots</id>
+			<name>The Anubian War - Snapshots Repository</name>
+			<url>scp://files.theanubianwar.com/srv/files.theanubianwar.com/public/htdocs/maven/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
 	<build>
 		<extensions>
 			<extension>
 				<groupId>org.apache.maven.wagon</groupId>
 				<artifactId>wagon-ssh</artifactId>
-				<version>2.6</version>
+				<version>2.9</version>
 			</extension>
 		</extensions>
 		<pluginManagement>
@@ -107,9 +119,9 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-deploy-plugin</artifactId>
 				<version>2.8.1</version>
-				<configuration>
+				<!-- <configuration>
 					<skip>true</skip>
-				</configuration>
+				</configuration> -->
 			</plugin>
 
 			<!-- The properties plugin is used to be able to read code signing properties 
@@ -139,19 +151,8 @@
 		</plugins>
 	</build>
 	<pluginRepositories>
-		<!-- <pluginRepository> <id>codehaus-snapshots</id> <url>http://nexus.codehaus.org/snapshots/</url> 
-			<snapshots /> <releases> <enabled>false</enabled> </releases> </pluginRepository> -->
 	</pluginRepositories>
 	<repositories>
-		<!-- JME3 itself is here -->
-		<!-- <repository>
-			<id>jme3</id>
-			<url>http://updates.jmonkeyengine.org/maven/</url>
-			<releases />
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository> -->
 		<repository>
 			<snapshots>
 				<enabled>false</enabled>
@@ -160,8 +161,6 @@
 			<name>bintray</name>
 			<url>http://dl.bintray.com/jmonkeyengine/com.jme3</url>
 		</repository>
-		<!-- <repository> <id>oss-sonatype</id> <name>oss-sonatype</name> <url>https://oss.sonatype.org/content/repositories/snapshots/</url> 
-			<releases> <enabled>false</enabled> </releases> <snapshots /> </repository> -->
 		<repository>
 			<id>sonatype-public</id>
 			<name>sonatype public</name>
@@ -169,8 +168,6 @@
 			<releases />
 			<snapshots />
 		</repository>
-		<!-- <repository> <id>codehaus-snapshots</id> <url>http://nexus.codehaus.org/snapshots/</url> 
-			<snapshots /> <releases> <enabled>false</enabled> </releases> </repository> -->
 		<repository>
 			<id>3rd-party-libraries</id>
 			<url>file://${basedir}/../ice/3rd-party-libraries/</url>
@@ -185,7 +182,6 @@
 	<modules>
 		<module>icetools</module>
 		<module>icelib</module>
-		<module>icetone</module>
 		<module>icenet</module>
 		<module>iceui</module>
 		<module>icescripting</module>
