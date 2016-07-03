@@ -261,8 +261,8 @@ public class FancyWindow extends Element {
 
 		setLockToParentBounds(true);
 
-		setClipPadding(screen.getStyle(size.toStyleName()).getFloat("clipPadding"));
-		setTextPadding(screen.getStyle(size.toStyleName()).getVector4f("textPadding"));
+		setClipPaddingByKey(size.toStyleName(), "clipPadding");
+		setTextPaddingByKey(size.toStyleName(), "textPadding");
 
 		dbIndents = screen.getStyle(size.toStyleName() + "#Dragbar").getVector4f("indents");
 		defaultControlSize = screen.getStyle(size.toStyleName() + "#Dragbar").getFloat("defaultControlSize");
@@ -348,7 +348,7 @@ public class FancyWindow extends Element {
 				FancyWindow.this.resize(x, y, dir);
 			}
 		};
-		content.setTextPadding(screen.getStyle(size.toStyleName() + "#Content").getVector4f("textPadding"));
+		content.setTextPaddingByKey(size.toStyleName() + "#Content", "textPadding");
 		content.setLayoutManager(new MigLayout());
 		content.setIgnoreMouse(false);
 		content.setIsMovable(false);

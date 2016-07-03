@@ -1,10 +1,11 @@
 package org.icenet.client;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
-import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.icelib.Appearance;
 import org.icelib.Armed;
@@ -32,7 +32,6 @@ import org.icelib.RGB;
 import org.icelib.SceneryItem;
 import org.icelib.Slot;
 import org.icelib.Zone;
-import org.icelib.beans.ObjectMapper;
 import org.icenet.ChatIncomingMessage;
 import org.icenet.ChatOutgoingMessage;
 import org.icenet.CreatureEventReplyMessage;
@@ -75,9 +74,15 @@ import org.icenet.SpawnUpdateMessage.Velocity;
 import org.icenet.SpawnUpdateMessage.ZoneUpdate;
 import org.icenet.StatusUpdateMessage;
 import org.icenet.SystemMessage;
+import org.icenet.TokenLoginMessage;
 import org.icesquirrel.interpreter.SquirrelInterpretedTable;
 import org.icesquirrel.runtime.SquirrelException;
 import org.icesquirrel.runtime.SquirrelTable;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 /**
  * High level network client for the Planet Forever protocol. Users of this
@@ -85,6 +90,8 @@ import org.icesquirrel.runtime.SquirrelTable;
  * listeners and methods to monitor game events and perform operations.
  */
 public class Client implements Simulator.MessageListener {
+
+	public final static String HTTP_USER_AGENT = "Icenet";
 
 	private static final Logger LOG = Logger.getLogger(Client.class.getName());
 	private Simulator simulator;
@@ -114,6 +121,7 @@ public class Client implements Simulator.MessageListener {
 	private Router router;
 	private Object moveLock = new Object();
 	private String authToken;
+	private String mXCSRFToken;
 
 	public Client(URI serverUrl) {
 		this.serverUrl = serverUrl;
@@ -246,56 +254,41 @@ public class Client implements Simulator.MessageListener {
 					String uid = spl[2];
 					String sessionName = spl[0];
 					String sessionId = spl[1];
-
-					// First open URL connection (using JDK; similar with other
-					// libs)
 					URL authUrl = new URL(simulator.getAuthData());
-					URL replyUrl = new URL(authUrl.getProtocol(), authUrl.getHost(), authUrl.getPort(), "user/" + uid + ".json");
+					URL replyUrl = new URL(authUrl.getProtocol(), authUrl.getHost(), authUrl.getPort(),
+							"/user/" + uid + ".json");
 					HttpURLConnection connection = (HttpURLConnection) replyUrl.openConnection();
 					connection.setDoInput(true);
-					connection.setDoOutput(true);
+					connection.setRequestProperty("User-Agent", HTTP_USER_AGENT);
 					connection.setRequestProperty("Cookie", sessionName + "=" + URLEncoder.encode(sessionId, "UTF-8"));
 					connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 					if (connection.getResponseCode() == 200) {
-						
-						IOUtils.copy(connection.getInputStream(), System.out);
-
-						// // and other configuration if you want, timeouts etc
-						// // then send JSON request
-						// RequestObject request = ...; // POJO with getters or
-						// public fields
-						// ObjectMapper mapper = new ObjectMapper(); // from
-						// org.codeahaus.jackson.map
-						// mapper.writeValue(connection.getOutputStream(),
-						// request);
-						// // and read response
-						// ResponseObject response =
-						// mapper.readValue(connection.getInputStream(),
-						// ResponseObject.class);
+						handleServiceTokenLogin(connection.getInputStream());
 					} else {
 						throw new NetworkException(ErrorType.GENERAL_NETWORK_ERROR,
 								String.format("Service responded with error code %d", connection.getResponseCode(),
 										connection.getResponseMessage()));
 					}
 				} else {
-					// TODO
-
-					// mXCSRFToken = null;
-					//
-					// req.onreadystatechange = function () {
-					// if (this.readyState == 4) {
-					// ::_Connection._handleServiceToken(this);
-					// }
-					// };
-					//
-					// // Get the X-CSRF-Token (sent as header on next request)
-					// req.setRequestHeader("Content-Type", "application/json");
-					// req.setRequestHeader("User-Agent", "EETAW");
-					// req.setRequestHeader("Host",
-					// Util.extractHostnameAndPortFromUrl(mAuthData));
-					// req.open("POST", mAuthData + "/user/token.json", false);
-					// req.send("{}");
-					throw new UnsupportedOperationException();
+					mXCSRFToken = null;
+					URL authUrl = new URL(simulator.getAuthData());
+					LOG.info(String.format("Auth data is %s", simulator.getAuthData()));
+					URL replyUrl = new URL(authUrl, "rest/user/token.json");
+					LOG.info(String.format("Auth URL is %s", replyUrl));
+					HttpURLConnection connection = (HttpURLConnection) replyUrl.openConnection();
+					connection.setDoOutput(true);
+					connection.setRequestProperty("User-Agent", HTTP_USER_AGENT);
+					connection.setRequestMethod("POST");
+					connection.setRequestProperty("Content-Type", "application/json");
+					connection.getOutputStream().write("{}".getBytes());
+					connection.getOutputStream().flush();
+					if (connection.getResponseCode() == 200) {
+						handleServiceToken(connection.getInputStream(), username, password);
+					} else {
+						throw new NetworkException(ErrorType.GENERAL_NETWORK_ERROR,
+								String.format("Service responded with error code %d (%s)", connection.getResponseCode(),
+										connection.getResponseMessage()));
+					}
 				}
 			} catch (IOException ioe) {
 				throw new NetworkException(ErrorType.AUTHENTICATION_SERICE_ERROR, ioe);
@@ -460,7 +453,8 @@ public class Client implements Simulator.MessageListener {
 		personas.clear();
 		// Personas
 		long id = 1;
-		QueryReplyMessage qrm = (QueryReplyMessage) simulator.sendMessage(new LobbyQueryMessageWithReply("persona.list"));
+		QueryReplyMessage qrm = (QueryReplyMessage) simulator
+				.sendMessage(new LobbyQueryMessageWithReply("persona.list"));
 		try {
 			for (QueryReplyMessage.Reply qrmr : qrm.getReplies()) {
 
@@ -499,7 +493,8 @@ public class Client implements Simulator.MessageListener {
 
 			}
 		} catch (IOException pe) {
-			throw new NetworkException(NetworkException.ErrorType.PARSING_ERROR, "Failed to parse persona details.", pe);
+			throw new NetworkException(NetworkException.ErrorType.PARSING_ERROR, "Failed to parse persona details.",
+					pe);
 		}
 		return new ArrayList<>(personas);
 	}
@@ -542,7 +537,8 @@ public class Client implements Simulator.MessageListener {
 				return gc;
 			}
 		}
-		throw new NetworkException(NetworkException.ErrorType.GENERAL_NETWORK_ERROR, "New character was not in new persona list.");
+		throw new NetworkException(NetworkException.ErrorType.GENERAL_NETWORK_ERROR,
+				"New character was not in new persona list.");
 	}
 
 	public void accountTracking(int idx) throws NetworkException {
@@ -557,20 +553,23 @@ public class Client implements Simulator.MessageListener {
 
 	public GameItem getItemByName(String itemName) throws NetworkException {
 		throw new UnsupportedOperationException("Not supported yet."); // To
-																		 // change
-																		 // body
-																		 // of
-																		 // generated
-																		 // methods,
-																		 // choose
-																		 // Tools
-																		 // |
-																		 // Templates.
+																		// change
+																		// body
+																		// of
+																		// generated
+																		// methods,
+																		// choose
+																		// Tools
+																		// |
+																		// Templates.
 	}
 
 	public GameItem getItem(long itemId) throws NetworkException {
 		if (simulator.getMode().equals(ProtocolState.LOBBY)) {
-			ItemQueryReplyMessage irm = (ItemQueryReplyMessage) simulator.sendMessage(new LobbyItemQueryMessage(itemId));
+			ItemQueryReplyMessage irm = (ItemQueryReplyMessage) simulator
+					.sendMessage(new LobbyItemQueryMessage(itemId));
+			if (irm == null)
+				throw new IllegalArgumentException(String.format("No item with ID of %d", itemId));
 			try {
 				return new GameItem(irm);
 			} catch (IOException pe) {
@@ -579,6 +578,8 @@ public class Client implements Simulator.MessageListener {
 		} else {
 			ItemQueryMessage aqm = new ItemQueryMessage(itemId);
 			ItemQueryReplyMessage rep = (ItemQueryReplyMessage) simulator.sendMessage(aqm);
+			if (rep == null)
+				throw new IllegalArgumentException(String.format("No item with ID of %d", itemId));
 			try {
 				return new GameItem(rep);
 			} catch (IOException pe) {
@@ -589,41 +590,41 @@ public class Client implements Simulator.MessageListener {
 
 	public void swapInventoryItem(int slot1, int slot2) throws NetworkException {
 		throw new UnsupportedOperationException("Not supported yet."); // To
-																		 // change
-																		 // body
-																		 // of
-																		 // generated
-																		 // methods,
-																		 // choose
-																		 // Tools
-																		 // |
-																		 // Templates.
+																		// change
+																		// body
+																		// of
+																		// generated
+																		// methods,
+																		// choose
+																		// Tools
+																		// |
+																		// Templates.
 	}
 
 	public void deequip(int returnToSlot, Slot slot) throws NetworkException {
 		throw new UnsupportedOperationException("Not supported yet."); // To
-																		 // change
-																		 // body
-																		 // of
-																		 // generated
-																		 // methods,
-																		 // choose
-																		 // Tools
-																		 // |
-																		 // Templates.
+																		// change
+																		// body
+																		// of
+																		// generated
+																		// methods,
+																		// choose
+																		// Tools
+																		// |
+																		// Templates.
 	}
 
 	public void equip(Slot slotToEquipTo, int inventorySlotToTakeFrom) throws NetworkException {
 		throw new UnsupportedOperationException("Not supported yet."); // To
-																		 // change
-																		 // body
-																		 // of
-																		 // generated
-																		 // methods,
-																		 // choose
-																		 // Tools
-																		 // |
-																		 // Templates.
+																		// change
+																		// body
+																		// of
+																		// generated
+																		// methods,
+																		// choose
+																		// Tools
+																		// |
+																		// Templates.
 	}
 
 	public void setStatus(String status) throws NetworkException {
@@ -668,8 +669,8 @@ public class Client implements Simulator.MessageListener {
 		simulator.sendAndAwaitReplies(msg, new Simulator.ReplyCallback() {
 			@Override
 			public Simulator.ReplyAction onReply(SimulatorMessage mesg) throws NetworkException {
-				if (mesg instanceof CreatureEventReplyMessage
-						&& ((CreatureEventReplyMessage) mesg).getType() == CreatureEventReplyMessage.SUBMSG_HENGE_LIST) {
+				if (mesg instanceof CreatureEventReplyMessage && ((CreatureEventReplyMessage) mesg)
+						.getType() == CreatureEventReplyMessage.SUBMSG_HENGE_LIST) {
 					HengeListMessage hlm = (HengeListMessage) (((CreatureEventReplyMessage) mesg).getSubMessage());
 					g.addAll(hlm.getHenges());
 					return Simulator.ReplyAction.HANDLED;
@@ -688,23 +689,26 @@ public class Client implements Simulator.MessageListener {
 	}
 
 	public void deleteScenery(SceneryItem sceneryItem) {
-		final GameQueryMessageWithReply msg = new GameQueryMessageWithReply("scenery.delete", String.valueOf(sceneryItem.getId()));
+		final GameQueryMessageWithReply msg = new GameQueryMessageWithReply("scenery.delete",
+				String.valueOf(sceneryItem.getId()));
 		checkQueryReply((QueryReplyMessage) simulator.sendMessage(msg));
 	}
 
 	public SceneryItem updateSceneryName(final SceneryItem item) {
 		return doSceneryUpdate(item,
-				new GameQueryMessageWithReply("scenery.edit", String.valueOf(item.getId()), "name", item.getName())).get(0);
+				new GameQueryMessageWithReply("scenery.edit", String.valueOf(item.getId()), "name", item.getName()))
+						.get(0);
 	}
 
 	public SceneryItem updateSceneryAsset(final SceneryItem item) {
 		return doSceneryUpdate(item,
-				new GameQueryMessageWithReply("scenery.edit", String.valueOf(item.getId()), "asset", item.getAsset())).get(0);
+				new GameQueryMessageWithReply("scenery.edit", String.valueOf(item.getId()), "asset", item.getAsset()))
+						.get(0);
 	}
 
 	public SceneryItem updateSceneryLayer(final SceneryItem item) {
-		return doSceneryUpdate(item, new GameQueryMessageWithReply("scenery.edit", String.valueOf(item.getId()), "layer",
-				String.valueOf(item.getLayer()))).get(0);
+		return doSceneryUpdate(item, new GameQueryMessageWithReply("scenery.edit", String.valueOf(item.getId()),
+				"layer", String.valueOf(item.getLayer()))).get(0);
 	}
 
 	public SceneryItem updateSceneryFlags(final SceneryItem item) {
@@ -715,60 +719,32 @@ public class Client implements Simulator.MessageListener {
 		if (item.isPrimary()) {
 			flags = flags | SceneryQueryReplyMessage.FLAG_PRIMARY;
 		}
-		return doSceneryUpdate(item,
-				new GameQueryMessageWithReply("scenery.edit", String.valueOf(item.getId()), "flags", String.valueOf(flags))).get(0);
+		return doSceneryUpdate(item, new GameQueryMessageWithReply("scenery.edit", String.valueOf(item.getId()),
+				"flags", String.valueOf(flags))).get(0);
 	}
 
 	public SceneryItem updateScenery(final SceneryItem item) {
 		return doSceneryUpdate(item,
 				new GameQueryMessageWithReply("scenery.edit", String.valueOf(item.getId()), "p",
-						String.format("%1.2f %1.2f %1.2f", item.getLocation().x, item.getLocation().y, item.getLocation().z), "q",
+						String.format("%1.2f %1.2f %1.2f", item.getLocation().x, item.getLocation().y,
+								item.getLocation().z),
+						"q",
 						String.format("%s %f %f %f", item.getRotation().w, item.getRotation().x, item.getRotation().y,
 								item.getRotation().z),
-						"s", String.format("%1.2f %1.2f %1.2f", item.getScale().x, item.getScale().y, item.getScale().z))).get(0);
+						"s",
+						String.format("%1.2f %1.2f %1.2f", item.getScale().x, item.getScale().y, item.getScale().z)))
+								.get(0);
 	}
 
 	public Simulator getSimulator() {
 		return simulator;
 	}
 
-	private List<SceneryItem> doSceneryUpdate(final SceneryItem item, final GameQueryMessageWithReply msg) {
-		final List<SceneryItem> g = new ArrayList<>();
-		simulator.sendAndAwaitReplies(msg, new Simulator.ReplyCallback() {
-			@Override
-			public Simulator.ReplyAction onReply(SimulatorMessage mesg) throws NetworkException {
-				if (mesg instanceof SceneryQueryReplyMessage) {
-					LOG.info(String.format("Do Scenery update %s", mesg));
-					SceneryItem prop = createPropWithAssetAsName(mesg);
-					if (prop.getId() == item.getId()) {
-						// QUESTION Is it possible to get a response for a
-						// different
-						g.add(prop);
-					}
-					// We just skip this reply so it is handled as by {@link
-					// #receivedMessage}
-					// and sent to all the listeners
-				} else if (mesg instanceof QueryReplyMessage && ((QueryReplyMessage) mesg).getId() == msg.getId()) {
-					// TODO not sure about this error checking, needs testing
-					// with various errors, such as permissions
-					QueryReplyMessage qrm = (QueryReplyMessage) mesg;
-					return checkQueryReply(qrm);
-				}
-				return Simulator.ReplyAction.SKIP;
-			}
-		});
-		if (g.isEmpty()) {
-			throw new NetworkException(NetworkException.ErrorType.GENERAL_NETWORK_ERROR,
-					"Expect new prop response, didn't get one.");
-		}
-		return g;
-	}
-
 	public SceneryItem addScenery(final String propName, Point3D toLocation, Point3D scale, Point4D rotation)
 			throws NetworkException {
 		final List<SceneryItem> g = new ArrayList<>();
-		final GameQueryMessageWithReply msg = new GameQueryMessageWithReply("scenery.edit", "NEW", "asset", propName, "p",
-				String.format("%1.2f %1.2f %1.2f", toLocation.x, toLocation.y, toLocation.z), "q",
+		final GameQueryMessageWithReply msg = new GameQueryMessageWithReply("scenery.edit", "NEW", "asset", propName,
+				"p", String.format("%1.2f %1.2f %1.2f", toLocation.x, toLocation.y, toLocation.z), "q",
 				String.format("%f %f %f %s", rotation.x, rotation.y, rotation.z, rotation.w), "s",
 				String.format("%1.2f %1.2f %1.2f", scale.x, scale.y, scale.z));
 		simulator.sendAndAwaitReplies(msg, new Simulator.ReplyCallback() {
@@ -806,8 +782,8 @@ public class Client implements Simulator.MessageListener {
 
 	public List<SceneryItem> listScenery(PageLocation pl, Zone zone) {
 		final List<SceneryItem> g = new ArrayList<>();
-		final GameQueryMessageWithReply msg = new GameQueryMessageWithReply("scenery.list", String.valueOf(zone.getId()),
-				String.valueOf(pl.x), String.valueOf(pl.y));
+		final GameQueryMessageWithReply msg = new GameQueryMessageWithReply("scenery.list",
+				String.valueOf(zone.getId()), String.valueOf(pl.x), String.valueOf(pl.y));
 		simulator.sendAndAwaitReplies(msg, new Simulator.ReplyCallback() {
 			@Override
 			public Simulator.ReplyAction onReply(SimulatorMessage mesg) throws NetworkException {
@@ -860,7 +836,8 @@ public class Client implements Simulator.MessageListener {
 		QueryReplyMessage reply = (QueryReplyMessage) simulator.sendMessage(msg);
 		String answer = reply.getReplies().get(0).getStrings().get(0);
 		if (!answer.equals("OK")) {
-			throw new NetworkException(NetworkException.ErrorType.GENERAL_NETWORK_ERROR, "Failed to add friend. " + answer);
+			throw new NetworkException(NetworkException.ErrorType.GENERAL_NETWORK_ERROR,
+					"Failed to add friend. " + answer);
 		}
 	}
 
@@ -869,7 +846,8 @@ public class Client implements Simulator.MessageListener {
 		QueryReplyMessage reply = (QueryReplyMessage) simulator.sendMessage(msg);
 		String answer = reply.getReplies().get(0).getStrings().get(0);
 		if (!answer.equals("OK")) {
-			throw new NetworkException(NetworkException.ErrorType.GENERAL_NETWORK_ERROR, "Failed to remove friend. " + answer);
+			throw new NetworkException(NetworkException.ErrorType.GENERAL_NETWORK_ERROR,
+					"Failed to remove friend. " + answer);
 		}
 	}
 
@@ -888,7 +866,8 @@ public class Client implements Simulator.MessageListener {
 					ignored.add((String) k);
 				}
 			} catch (SquirrelException ex) {
-				throw new NetworkException(NetworkException.ErrorType.GENERAL_NETWORK_ERROR, "Failed to parse ignore list.", ex);
+				throw new NetworkException(NetworkException.ErrorType.GENERAL_NETWORK_ERROR,
+						"Failed to parse ignore list.", ex);
 			}
 		}
 		return ignored;
@@ -1003,7 +982,8 @@ public class Client implements Simulator.MessageListener {
 			p.setDate(System.currentTimeMillis() - (10000000 * i));
 			p.setLastEdit(System.currentTimeMillis() - (5000000 * i));
 			p.setEdits((int) (Math.random() * 10));
-			p.setText("[b]" + i + "[/b] (page " + page + ") Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed "
+			p.setText("[b]" + i + "[/b] (page " + page
+					+ ") Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed "
 					+ "do eiusmod tempor incididunt ut labore et dolore magna aliqua. "
 					+ "Ut enim ad minim veniam, [b]quis[/b] nostrud exercitation ullamco "
 					+ "laboris nisi ut aliquip ex ea commodo consequat. Duis aute "
@@ -1084,7 +1064,8 @@ public class Client implements Simulator.MessageListener {
 			switch (pllm.getType()) {
 			case CreatureEventReplyMessage.SUBMSG_LOGOUT:
 				if (spawn == null) {
-					LOG.warning(String.format("Got logout for spawn (%d) that we didn't know about.", pllm.getSpawnId()));
+					LOG.warning(
+							String.format("Got logout for spawn (%d) that we didn't know about.", pllm.getSpawnId()));
 				} else {
 					LOG.info(String.format("Got logout for spawn (%d).", pllm.getSpawnId()));
 					destroySpawn(spawn);
@@ -1154,7 +1135,8 @@ public class Client implements Simulator.MessageListener {
 	}
 
 	public void setArmed(Armed armed) throws NetworkException {
-		final GameQueryMessageWithReply msg = new GameQueryMessageWithReply("visWeapon", String.valueOf(armed.toCode()));
+		final GameQueryMessageWithReply msg = new GameQueryMessageWithReply("visWeapon",
+				String.valueOf(armed.toCode()));
 		QueryReplyMessage reply = (QueryReplyMessage) simulator.sendMessage(msg);
 		if (reply.isError()) {
 			throw new NetworkException(NetworkException.ErrorType.GENERAL_NETWORK_ERROR,
@@ -1330,7 +1312,8 @@ public class Client implements Simulator.MessageListener {
 		}
 	}
 
-	private void handleSpawnUpdate(long spawnId, SimulatorMessage mesg) throws NumberFormatException, IllegalStateException {
+	private void handleSpawnUpdate(long spawnId, SimulatorMessage mesg)
+			throws NumberFormatException, IllegalStateException {
 		// try {
 		SpawnUpdateMessage spawnMessage = (SpawnUpdateMessage) mesg;
 		// LOG.info("Handling spawn update " + spawnMessage);
@@ -1354,7 +1337,13 @@ public class Client implements Simulator.MessageListener {
 		for (SpawnUpdate su : spawnMessage.getUpdates()) {
 
 			if (spawn == null) {
-				spawn = createSpawn(spawnId);
+				try {
+					spawn = createSpawn(spawnId);
+				} catch (IllegalArgumentException iae) {
+					//
+					LOG.log(Level.WARNING, String.format("Skipping spawn update %s", su), iae);
+					continue;
+				}
 			}
 
 			if (su instanceof ZoneUpdate) {
@@ -1705,6 +1694,8 @@ public class Client implements Simulator.MessageListener {
 	}
 
 	private Spawn createSpawn(long spawnId) {
+		if (spawnId < 1)
+			throw new IllegalArgumentException(String.format("Invalid spawn ID %d", spawnId));
 		simulator.sendMessage(new RequestSpawnUpdateMessage(spawnId));
 		Spawn spawn = new Spawn(spawnId);
 		if (spawnId != playerSpawnId) {
@@ -1726,12 +1717,122 @@ public class Client implements Simulator.MessageListener {
 		}
 	}
 
+	private void handleServiceTokenLogin(InputStream in) {
+
+		/*
+		 * The token supplied to Start.exe must be in the format
+		 *
+		 * <sessionCookieName>:<sessionCookieValue>:<uid>
+		 *
+		 * Because this didn't come from the API, there will be NO X-CSRF-Token.
+		 * As with username/password authentication, we then pass this on to the
+		 * server that calls back to the website to validate the user (possibly
+		 * creating the game account if it doesn't already exist).
+		 *
+		 */
+
+		JsonElement jelement = new JsonParser().parse(new InputStreamReader(in));
+		JsonObject obj = jelement.getAsJsonObject();
+
+		String[] spl = authToken.split(":");
+		String uid = spl[2];
+		String sessionId = spl[1];
+		String sessionName = spl[0];
+
+		String name = obj.has("name") ? obj.get("name").getAsString() : "UNKNOWN";
+		String tkn = "NONE:" + sessionId + ":" + sessionName + ":" + uid;
+		SimulatorMessage msg = simulator.sendMessage(new TokenLoginMessage(name, tkn));
+		if (msg instanceof LobbyErrorMessage) {
+			throw new NetworkException(NetworkException.ErrorType.INCORRECT_USERNAME_OR_PASSWORD,
+					((LobbyErrorMessage) msg).getMessage());
+		}
+	}
+
+	private void handleServiceLogin(InputStream in, String username) {
+		JsonElement jelement = new JsonParser().parse(new InputStreamReader(in));
+		JsonObject obj = jelement.getAsJsonObject();
+		String token = mXCSRFToken + ":" + obj.get("sessid").getAsString() + ":" + obj.get("session_name").getAsString()
+				+ ":" + obj.get("user").getAsJsonObject().get("uid").getAsString();
+
+		SimulatorMessage msg = simulator.sendMessage(new TokenLoginMessage(username, token));
+		if (msg instanceof LobbyErrorMessage) {
+			throw new NetworkException(NetworkException.ErrorType.INCORRECT_USERNAME_OR_PASSWORD,
+					((LobbyErrorMessage) msg).getMessage());
+		}
+	}
+
+	private void handleServiceToken(InputStream in, String username, char[] password) throws IOException {
+		Gson gson = new Gson();
+
+		JsonElement jelement = new JsonParser().parse(new InputStreamReader(in));
+		JsonObject obj = jelement.getAsJsonObject();
+		JsonElement tokenEl = obj.get("token");
+		mXCSRFToken = tokenEl == null ? null : tokenEl.getAsString();
+		if (mXCSRFToken == null) {
+			throw new NetworkException(ErrorType.FAILED_TO_GET_TOKEN, "Failed to retrieve XCSRF token");
+		}
+
+		// Now we can authenticate the username and password
+
+		mXCSRFToken = null;
+		URL replyUrl = new URL(new URL(simulator.getAuthData()), "rest/user/login.json");
+		HttpURLConnection connection = (HttpURLConnection) replyUrl.openConnection();
+		connection.setDoOutput(true);
+		connection.setRequestProperty("User-Agent", HTTP_USER_AGENT);
+		connection.setRequestMethod("POST");
+		connection.setRequestProperty("Cookie", "X-CSRF-Token=" + mXCSRFToken);
+		connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+		String content = "username=" + URLEncoder.encode(username, "UTF-8") + "&password="
+				+ URLEncoder.encode(new String(password), "UTF-8");
+		connection.getOutputStream().write(content.getBytes("UTF-8"));
+		connection.getOutputStream().flush();
+		if (connection.getResponseCode() == 200) {
+			handleServiceLogin(connection.getInputStream(), username);
+		} else {
+			throw new NetworkException(ErrorType.GENERAL_NETWORK_ERROR,
+					String.format("Service responded with error code %d (%s)", connection.getResponseCode(),
+							connection.getResponseMessage()));
+		}
+	}
+
+	private List<SceneryItem> doSceneryUpdate(final SceneryItem item, final GameQueryMessageWithReply msg) {
+		final List<SceneryItem> g = new ArrayList<>();
+		simulator.sendAndAwaitReplies(msg, new Simulator.ReplyCallback() {
+			@Override
+			public Simulator.ReplyAction onReply(SimulatorMessage mesg) throws NetworkException {
+				if (mesg instanceof SceneryQueryReplyMessage) {
+					LOG.info(String.format("Do Scenery update %s", mesg));
+					SceneryItem prop = createPropWithAssetAsName(mesg);
+					if (prop.getId() == item.getId()) {
+						// QUESTION Is it possible to get a response for a
+						// different
+						g.add(prop);
+					}
+					// We just skip this reply so it is handled as by {@link
+					// #receivedMessage}
+					// and sent to all the listeners
+				} else if (mesg instanceof QueryReplyMessage && ((QueryReplyMessage) mesg).getId() == msg.getId()) {
+					// TODO not sure about this error checking, needs testing
+					// with various errors, such as permissions
+					QueryReplyMessage qrm = (QueryReplyMessage) mesg;
+					return checkQueryReply(qrm);
+				}
+				return Simulator.ReplyAction.SKIP;
+			}
+		});
+		if (g.isEmpty()) {
+			throw new NetworkException(NetworkException.ErrorType.GENERAL_NETWORK_ERROR,
+					"Expect new prop response, didn't get one.");
+		}
+		return g;
+	}
+
 	private void doMove(boolean force) throws NetworkException {
 		Icelib.removeMe("Client now sending movement %d %d %s", moveDeg, rotDeg, speed);
 		MovementMessage mesg = null;
 		synchronized (moveLock) {
-			mesg = new MovementMessage(Math.round(location.x), Math.round(location.y), Math.round(location.z), moveDeg, rotDeg,
-					speed);
+			mesg = new MovementMessage(Math.round(location.x), Math.round(location.y), Math.round(location.z), moveDeg,
+					rotDeg, speed);
 			lastSentLoc = location.clone();
 			lastSentDeg = rotDeg;
 			lastSentMoveDeg = moveDeg;
@@ -1742,8 +1843,8 @@ public class Client implements Simulator.MessageListener {
 			movementFuture = movementExecutor.schedule(new Runnable() {
 				@Override
 				public void run() {
-					if (!lastSentLoc.equals(Client.this.location) || lastSentDeg != Client.this.rotDeg || speed != lastSentSpeed
-							|| lastSentMoveDeg != Client.this.moveDeg) {
+					if (!lastSentLoc.equals(Client.this.location) || lastSentDeg != Client.this.rotDeg
+							|| speed != lastSentSpeed || lastSentMoveDeg != Client.this.moveDeg) {
 						doMove(false);
 					} else {
 						movementFuture = null;
@@ -1754,7 +1855,8 @@ public class Client implements Simulator.MessageListener {
 	}
 
 	private void updateEquipment(Spawn spawn, Map<Slot, Long> eq) {
-		LOG.info(String.format("Updating equipment in spawn %d (%s)", spawn.getId(), spawn.getPersona().getDisplayName()));
+		LOG.info(String.format("Updating equipment in spawn %d (%s)", spawn.getId(),
+				spawn.getPersona().getDisplayName()));
 		spawn.getPersona().removeAllEquipment();
 		for (Map.Entry<Slot, Long> et : eq.entrySet()) {
 			spawn.getPersona().addToInventory(et.getValue());
@@ -1766,6 +1868,20 @@ public class Client implements Simulator.MessageListener {
 		simulator = new Simulator(simulatorHost, simulatorPort);
 		simulator.addListener(this);
 		simulator.connectToSimulator();
+	}
+
+	public Map<String, String> getURLS() {
+		Map<String, String> urls = new HashMap<>();
+		LobbyQueryMessageWithReply urlsQuery = new LobbyQueryMessageWithReply("mod.getURL");
+		QueryReplyMessage urlsReply = (QueryReplyMessage) simulator.sendMessage(urlsQuery);
+		for (Reply row : urlsReply.getReplies()) {
+			System.out.println("row:: " + row.getReplyNumber());
+			for (String r : row.getStrings()) {
+				System.out.println("  " + r);
+
+			}
+		}
+		return urls;
 	}
 
 	public Router getRouter() {
