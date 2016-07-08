@@ -7,6 +7,7 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.channels.UnresolvedAddressException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -221,8 +222,8 @@ public class Client implements Simulator.MessageListener {
 		if (simulator != null && simulator.isConnected()) {
 			throw new IllegalStateException("Already connected.");
 		}
-		movementExecutor = Executors.newScheduledThreadPool(1);
 		doConnectorSimulator(simulatorHost, simulatorPort);
+		movementExecutor = Executors.newScheduledThreadPool(1);
 	}
 
 	/**
@@ -1865,9 +1866,14 @@ public class Client implements Simulator.MessageListener {
 	}
 
 	private void doConnectorSimulator(String simulatorHost, int simulatorPort) throws NetworkException {
-		simulator = new Simulator(simulatorHost, simulatorPort);
-		simulator.addListener(this);
-		simulator.connectToSimulator();
+		try {
+			simulator = new Simulator(simulatorHost, simulatorPort);
+			simulator.addListener(this);
+			simulator.connectToSimulator();
+		} catch (UnresolvedAddressException murle) {
+			throw new NetworkException(NetworkException.ErrorType.DNS_ERROR,
+					String.format("Could not resolve server hostname %s", simulatorHost), murle);
+		}
 	}
 
 	public Map<String, String> getURLS() {
