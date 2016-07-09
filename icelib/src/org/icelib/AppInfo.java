@@ -105,6 +105,7 @@ public class AppInfo {
 		if (version == null) {
 			version = "999.999.999";
 		}
+		LOG.info(String.format("%s (%s)", name, version));
 	}
 
 	protected static Properties loadProjectProperties() {
