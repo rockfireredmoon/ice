@@ -1,7 +1,7 @@
 /**
  * Copyright (C) 2014-2016 Emerald Icemoon (emerald.icemoon@gmail.com)
  * 
- * License: http://www.gnu.org/licenses/gpl.html GPL version 33 or higher
+ * License: http://www.gnu.org/licenses/gpl.html GPL version 3 or higher
  */
 package org.icelib;
 
@@ -10,9 +10,13 @@ import java.io.FileInputStream;
 import java.net.URL;
 import java.util.Properties;
 import java.util.jar.Manifest;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class AppInfo {
 
+	private static final Logger LOG = Logger.getLogger(AppInfo.class.getName());
+	
 	/**
 	 * The calling app should set this EARLY, it is used to locate the jar that
 	 * contains
@@ -60,13 +64,17 @@ public class AppInfo {
 		try {
 			String className = context.getSimpleName();
 			String classFileName = className + ".class";
+			LOG.info(String.format("Looking for application versioning in %s", classFileName));
 			String pathToThisClass = context.getResource(classFileName).toString();
+			LOG.info(String.format("Path to class is %s", pathToThisClass));
 			int mark = pathToThisClass.indexOf("!");
 			String pathToManifest = pathToThisClass.toString().substring(0, mark + 1);
 			pathToManifest = pathToManifest + "/META-INF/MANIFEST.MF";
+			LOG.info(String.format("Manifest should be at %s", pathToManifest));
 			Manifest manifest = new Manifest(new URL(pathToManifest).openStream());
 			readManifest(manifest);
 		} catch (Exception ioe) {
+			LOG.log(Level.WARNING, "Could not locate manifest for application versioning.", ioe);
 		}
 
 		// Is the a MANIFEST.MF in the current directory?

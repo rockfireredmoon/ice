@@ -306,15 +306,12 @@ public class Scripts {
 			if (engine instanceof Compilable) {
 				Compilable ce = (Compilable) engine;
 				InputStream in = loader.load(scriptPath);
-				try {
-					LOG.info(String.format("Compiling script %s", scriptPath));
-					CompiledScript cs = ce.compile(new InputStreamReader(in));
-					scriptCache.put(scriptPath, cs);
-					loaded.add(pathLessExtension);
-					return engineBindings == null ? cs.eval() : cs.eval(engineBindings);
-				} finally {
-					in.close();
-				}
+				LOG.info(String.format("Compiling script %s", scriptPath));
+				// Note, the input stream is closed by the compiler itself
+				CompiledScript cs = ce.compile(new InputStreamReader(in));
+				scriptCache.put(scriptPath, cs);
+				loaded.add(pathLessExtension);
+				return engineBindings == null ? cs.eval() : cs.eval(engineBindings);
 			}
 			InputStream in = loader.load(scriptPath);
 			try {
