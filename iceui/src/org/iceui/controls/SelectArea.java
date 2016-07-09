@@ -143,9 +143,9 @@ public class SelectArea extends ScrollPanel implements MouseButtonListener, TabF
 		scrollableArea.setTextClipPadding(screen.getStyle("SelectArea").getVector4f("scrollPadding"));
 		setHorizontalScrollBarMode(ScrollBarMode.Never);
 		((WrappingLayout) getScrollContentLayout()).setOrientation(Orientation.HORIZONTAL);
-		((WrappingLayout) getScrollContentLayout()).setEqualSizeCells(true);
+		((WrappingLayout) getScrollContentLayout()).setEqualSizeCells(false);
 		((WrappingLayout) getScrollContentLayout()).setWidth(1);
-		((WrappingLayout) getScrollContentLayout()).setFill(false);
+		((WrappingLayout) getScrollContentLayout()).setFill(true);
 		getScrollBounds().setIgnoreMouseButtons(true);
 		getScrollableArea().setIgnoreMouse(true);
 	}

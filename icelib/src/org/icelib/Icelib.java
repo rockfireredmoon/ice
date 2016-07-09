@@ -5,6 +5,8 @@
  */
 package org.icelib;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -23,6 +25,16 @@ import java.util.StringTokenizer;
 import org.icesquirrel.runtime.SquirrelArray;
 
 public class Icelib {
+	public static File makeDir(File dir) throws IOException {
+		if (!dir.exists() && !dir.mkdirs()) {
+			throw new IOException(String.format("Invalid external assets location. Failed to create %s", dir));
+		}
+		return dir;
+	}
+	public static File makeParent(File file) throws IOException {
+		makeDir(file.getParentFile());
+		return file;
+	}
 	public static boolean listEqualsNoOrder(List<?> l1, List<?> l2) {
 		for (Object k : l1) {
 			int idx = l2.indexOf(k);
