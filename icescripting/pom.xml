@@ -60,7 +60,7 @@
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>com.jme3</groupId>
+			<groupId>org.jmonkeyengine</groupId>
 			<artifactId>jme3-core</artifactId>
 			<version>${jmonkey.version}</version>
 		</dependency>

@@ -52,14 +52,14 @@
 		</dependency>
 		<!-- The core library -->
 		<dependency>
-			<groupId>com.jme3</groupId>
+			<groupId>org.jmonkeyengine</groupId>
 			<artifactId>jme3-core</artifactId>
 			<version>${jmonkey.version}</version>
 		</dependency>
 
 		<!-- Third party libs -->
 		<!-- <dependency>
-			<groupId>com.jme3</groupId>
+			<groupId>org.jmonkeyengine</groupId>
 			<artifactId>jinput</artifactId>
 			<version>${jmonkey.version}</version>
 		</dependency> -->

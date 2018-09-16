@@ -577,6 +577,8 @@ public class Client implements Simulator.MessageListener {
 				throw new NetworkException(NetworkException.ErrorType.PARSING_ERROR, pe);
 			}
 		} else {
+			Icelib.removeMe("Get item %s", itemId);
+			Icelib.dumpTrace();
 			ItemQueryMessage aqm = new ItemQueryMessage(itemId);
 			ItemQueryReplyMessage rep = (ItemQueryReplyMessage) simulator.sendMessage(aqm);
 			if (rep == null)
@@ -725,16 +727,13 @@ public class Client implements Simulator.MessageListener {
 	}
 
 	public SceneryItem updateScenery(final SceneryItem item) {
-		return doSceneryUpdate(item,
-				new GameQueryMessageWithReply("scenery.edit", String.valueOf(item.getId()), "p",
-						String.format("%1.2f %1.2f %1.2f", item.getLocation().x, item.getLocation().y,
-								item.getLocation().z),
-						"q",
-						String.format("%s %f %f %f", item.getRotation().w, item.getRotation().x, item.getRotation().y,
-								item.getRotation().z),
-						"s",
-						String.format("%1.2f %1.2f %1.2f", item.getScale().x, item.getScale().y, item.getScale().z)))
-								.get(0);
+		return doSceneryUpdate(item, new GameQueryMessageWithReply("scenery.edit", String.valueOf(item.getId()), "p",
+				String.format("%1.2f %1.2f %1.2f", item.getLocation().x, item.getLocation().y, item.getLocation().z),
+				"q",
+				String.format("%s %f %f %f", item.getRotation().w, item.getRotation().x, item.getRotation().y,
+						item.getRotation().z),
+				"s", String.format("%1.2f %1.2f %1.2f", item.getScale().x, item.getScale().y, item.getScale().z)))
+						.get(0);
 	}
 
 	public Simulator getSimulator() {
@@ -861,10 +860,13 @@ public class Client implements Simulator.MessageListener {
 					throw new NetworkException(NetworkException.ErrorType.GENERAL_NETWORK_ERROR,
 							String.format("Failed to retrieve ignore list. %s", reply.getErrorMessage()));
 				}
-				SquirrelTable ie = SquirrelInterpretedTable.table(reply.getReplies().get(0).getStrings().get(0));
+				String eon = reply.getReplies().get(0).getStrings().get(0);
 				ignored = new ArrayList<>();
-				for (Object k : ie.keySet()) {
-					ignored.add((String) k);
+				if (eon.length() > 0) {
+					SquirrelTable ie = SquirrelInterpretedTable.table(eon);
+					for (Object k : ie.keySet()) {
+						ignored.add((String) k);
+					}
 				}
 			} catch (SquirrelException ex) {
 				throw new NetworkException(NetworkException.ErrorType.GENERAL_NETWORK_ERROR,
@@ -935,6 +937,8 @@ public class Client implements Simulator.MessageListener {
 	}
 
 	public void updateInventory() throws NetworkException {
+		Icelib.removeMe("Updating inventory");
+		Icelib.dumpTrace();
 		final GameQueryMessageWithReply msg = new GameQueryMessageWithReply("item.contents", "inv");
 		final Map<Integer, Persona.SlotContents> newInventory = new HashMap<>();
 		simulator.sendAndAwaitReplies(msg, new Simulator.ReplyCallback() {
@@ -1038,7 +1042,8 @@ public class Client implements Simulator.MessageListener {
 			return true;
 		} else if (mesg instanceof PingFromServerMessage) {
 			try {
-				Icelib.removeMe("PONG!");
+				if (LOG.isLoggable(Level.FINE))
+					LOG.fine("Replying to ping");
 				simulator.sendMessage(new PongMessage());
 			} catch (NetworkException ex) {
 				LOG.log(Level.SEVERE, "Failed to send ping response.", ex);

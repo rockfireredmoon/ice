@@ -506,7 +506,7 @@ public enum StatType {
 	/**
 	* 
 	*/
-	HEALTH_REGEN(155, Short.class),
+	HEALTH_REGEN(155, Float.class),
 	/**
 	* 
 	*/
@@ -546,7 +546,11 @@ public enum StatType {
 	/**
 	* 
 	*/
-	TAGS(164, String.class);
+	TAGS(164, String.class),
+	/**
+	* 
+	*/
+	MAX_HEALTH_PC(165, Short.class);
 
 	private int code;
 	private Class<?> valueClass;

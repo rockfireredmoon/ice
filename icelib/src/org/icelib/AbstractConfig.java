@@ -15,12 +15,7 @@ public abstract class AbstractConfig {
 	public final static int TRUE = 1;
 	public final static int DEFAULT = 2;
 
-	public final static String WINDOW = "Window";
-	public final static String WINDOW_LOCK = WINDOW + "Lock";
-	public final static String WINDOW_X = WINDOW + "X";
-	public final static String WINDOW_Y = WINDOW + "Y";
-	public final static String WINDOW_HEIGHT = WINDOW + "Height";
-	public final static String WINDOW_WIDTH = WINDOW + "Width";
+	public final static String WINDOW_LOCK = "WindowLock";
 
 	public static Object getDefaultValue(Class<? extends AbstractConfig> clazz, String key) {
 		// Try and find the default

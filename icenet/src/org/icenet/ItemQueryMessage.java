@@ -5,12 +5,12 @@ import java.util.logging.Logger;
 
 public class ItemQueryMessage extends SimulatorMessage {
     private static final Logger LOG = Logger.getLogger(ItemQueryMessage.class.getName());
-    private final long abilityId;
+    private final long itemId;
 
     public ItemQueryMessage(long abilityId) {
         super(MSG_ITEM_QUERY);
         setWantsReply(true);
-        this.abilityId = abilityId;
+        this.itemId = abilityId;
         setValidForProtocol(Simulator.ProtocolState.GAME);
         payload = ByteBuffer.allocate(4);
         payload.putInt((int) abilityId);
@@ -19,11 +19,11 @@ public class ItemQueryMessage extends SimulatorMessage {
 
     @Override
     public boolean isReply(SimulatorMessage msg) {
-        return msg instanceof ItemQueryReplyMessage && ((ItemQueryReplyMessage) msg).getId() == abilityId;
+        return msg instanceof ItemQueryReplyMessage && ((ItemQueryReplyMessage) msg).getId() == itemId;
     }
 
     @Override
     public String toString() {
-        return "AbilityQueryMessage{" + "abilityId=" + abilityId + '}';
+        return "ItemQueryMessage{" + "abilityId=" + itemId + '}';
     }
 }

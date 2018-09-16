@@ -1,0 +1,7 @@
+---
+!theme
+name: "IceUI"
+author: "Emerald Icemoon"
+description: "Generic CSS for IceUI extensions"
+path: "IceUI.css"
+parent: ".*"

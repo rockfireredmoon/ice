@@ -22,7 +22,7 @@ import com.jme3.renderer.Camera;
 public class IceUI {
 
 	public static ColorRGBA getColourPreference(Preferences prefs, String key, ColorRGBA defaultColour) {
-		return IceUI.toRGBA(new Color(prefs.get(key, Icelib.toHexString(IceUI.fromRGBA(defaultColour)))));
+		return toRGBA(new Color(prefs.get(key, Icelib.toHexString(IceUI.fromRGBA(defaultColour)))));
 	}
 
 	public static short getDifference(int target, int source) {
@@ -64,7 +64,12 @@ public class IceUI {
 	 *            the value of col
 	 */
 	public static Vector4f toVector4fColor(RGB col) {
-		return new Vector4f((float) col.getRed() / 255.0F, (float) col.getGreen() / 255.0F, (float) col.getBlue() / 255.0F, 1.0F);
+		return new Vector4f((float) col.getRed() / 255.0F, (float) col.getGreen() / 255.0F,
+				(float) col.getBlue() / 255.0F, 1.0F);
+	}
+
+	public static String toHexNumber(ColorRGBA rgba) {
+		return Icelib.toHexNumber(fromRGBA(rgba));
 	}
 
 	/**
@@ -73,8 +78,9 @@ public class IceUI {
 	 *            the value of fogColor
 	 */
 	public static RGB fromRGBA(ColorRGBA fogColor) {
-		return fogColor == null ? null : new Color((int) (fogColor.getRed() * 255), (int) (fogColor.getGreen() * 255), (int) (fogColor.getBlue() * 255),
-				(int) (fogColor.getAlpha() * 255));
+		return fogColor == null ? null
+				: new Color((int) (fogColor.getRed() * 255), (int) (fogColor.getGreen() * 255),
+						(int) (fogColor.getBlue() * 255), (int) (fogColor.getAlpha() * 255));
 	}
 
 	/**
@@ -94,8 +100,8 @@ public class IceUI {
 	 *            the value of includeAlpha
 	 */
 	public static Vector4f rgbToVector4f(RGB rgb, boolean includeAlpha) {
-		return new Vector4f((float) rgb.getRed() / 255.0F, (float) rgb.getGreen() / 255.0F, (float) rgb.getBlue() / 255.0F,
-				includeAlpha ? ((float) rgb.getAlpha() / 255.0F) : 1.0F);
+		return new Vector4f((float) rgb.getRed() / 255.0F, (float) rgb.getGreen() / 255.0F,
+				(float) rgb.getBlue() / 255.0F, includeAlpha ? ((float) rgb.getAlpha() / 255.0F) : 1.0F);
 	}
 
 	/**
@@ -140,18 +146,10 @@ public class IceUI {
 		if ((rgba1 == null && rgba2 != null) || (rgba1 != null && rgba2 == null)) {
 			return false;
 		}
-		return (int) (rgba1.r * 255.0F) == (int) (rgba2.r * 255.0F) && (int) (rgba1.g * 255.0F) == (int) (rgba2.g * 255.0F)
-				&& (int) (rgba1.b * 255.0F) == (int) (rgba2.b * 255.0F) && (int) (rgba1.a * 255.0F) == (int) (rgba2.a * 255.0F);
-	}
-
-	/**
-	 * 
-	 * @param rgb
-	 *            the value of rgb
-	 */
-	public static ColorRGBA toRGBA(RGB rgb) {
-		return new ColorRGBA((float) rgb.getRed() / 255.0F, (float) rgb.getGreen() / 255.0F, (float) rgb.getBlue() / 255.0F,
-				rgb.getAlpha() == -1 ? 1.0F : (float) rgb.getAlpha() / 255.0F);
+		return (int) (rgba1.r * 255.0F) == (int) (rgba2.r * 255.0F)
+				&& (int) (rgba1.g * 255.0F) == (int) (rgba2.g * 255.0F)
+				&& (int) (rgba1.b * 255.0F) == (int) (rgba2.b * 255.0F)
+				&& (int) (rgba1.a * 255.0F) == (int) (rgba2.a * 255.0F);
 	}
 
 	public static Vector3f roundLocal(Vector3f v) {
@@ -202,7 +200,8 @@ public class IceUI {
 
 	public static Vector3f toEulerDegrees(Quaternion q, float snap) {
 		float[] ang = q.toAngles(null);
-		Vector3f rotVal = new Vector3f(ang[0] * FastMath.RAD_TO_DEG, ang[1] * FastMath.RAD_TO_DEG, ang[2] * FastMath.RAD_TO_DEG);
+		Vector3f rotVal = new Vector3f(ang[0] * FastMath.RAD_TO_DEG, ang[1] * FastMath.RAD_TO_DEG,
+				ang[2] * FastMath.RAD_TO_DEG);
 		if (rotVal.x < 0) {
 			rotVal.x = rotVal.x + 360;
 		}
@@ -240,14 +239,6 @@ public class IceUI {
 		return newVal;
 	}
 
-	public static List<ColorRGBA> toRGBAList(List<? extends RGB> palette) {
-		List<ColorRGBA> l = new ArrayList<ColorRGBA>(palette.size());
-		for (RGB r : palette) {
-			l.add(toRGBA(r));
-		}
-		return l;
-	}
-
 	public static float[] saveFrustum(Camera cam) {
 		return new float[] { cam.getFrustumBottom(), cam.getFrustumFar(), cam.getFrustumLeft(), cam.getFrustumNear(),
 				cam.getFrustumRight(), cam.getFrustumTop() };
@@ -260,5 +251,23 @@ public class IceUI {
 		cam.setFrustumNear(f[3]);
 		cam.setFrustumRight(f[4]);
 		cam.setFrustumTop(f[4]);
+	}
+
+	/**
+	 * 
+	 * @param rgb
+	 *            the value of rgb
+	 */
+	public static ColorRGBA toRGBA(RGB rgb) {
+		return new ColorRGBA((float) rgb.getRed() / 255.0F, (float) rgb.getGreen() / 255.0F,
+				(float) rgb.getBlue() / 255.0F, rgb.getAlpha() == -1 ? 1.0F : (float) rgb.getAlpha() / 255.0F);
+	}
+
+	public static List<ColorRGBA> toRGBAList(List<? extends RGB> palette) {
+		List<ColorRGBA> l = new ArrayList<ColorRGBA>(palette.size());
+		for (RGB r : palette) {
+			l.add(toRGBA(r));
+		}
+		return l;
 	}
 }

@@ -267,8 +267,8 @@ public class Simulator implements Closeable {
 		try {
 			if (mesg.isWantsReply() && mesg.isWaitForReply()) {
 				long timeout = mesg.getReplyTimeout();
-				if (LOG.isLoggable(Level.FINE)) {
-					LOG.fine(String.format("Waiting %d for reply to %s", timeout, mesg));
+				if (LOG.isLoggable(Level.INFO)) {
+					LOG.info(String.format("Waiting %d for reply to %s", timeout, mesg));
 				}
 				if (!disconnected) {
 					synchronized (replyLock) {
@@ -449,7 +449,8 @@ public class Simulator implements Closeable {
 			// Decode actual message if recognised
 			try {
 				routerMessage = mutateMessage(routerMessage);
-				LOG.info("ROUTER MESSAGE: " + routerMessage);
+				if(LOG.isLoggable(Level.FINE))
+					LOG.fine("ROUTER MESSAGE: " + routerMessage);
 				if (routerMessage.getPayload().remaining() > 0) {
 					LOG.warning(String.format("Bytes remaining after processing message! %d of %d remain in %s.",
 							routerMessage.getPayload().remaining(), toRead, routerMessage.getClass()));

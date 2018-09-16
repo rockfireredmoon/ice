@@ -61,7 +61,7 @@ public class SimulatorMessage {
      */
     public final static byte MSG_JUMP = 0x3c;
     /**
-     * Set Map. 
+     * Set Map Hex 0x2a, Dec 42. 
      */
     public final static byte MSG_SET_MAP = (byte) 0x2a;
     /**

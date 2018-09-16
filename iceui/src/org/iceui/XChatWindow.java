@@ -10,43 +10,32 @@ import java.util.prefs.Preferences;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.icelib.ChannelType;
-import org.iceui.controls.FancyDialogBox;
-import org.iceui.controls.FancyInputBox;
-import org.iceui.controls.FancyWindow;
-import org.iceui.controls.FancyWindow.Size;
-import org.iceui.controls.PersistentPanel;
-import org.iceui.controls.SaveType;
-import org.iceui.controls.UIUtil;
-import org.iceui.controls.XTabControl;
-import org.iceui.controls.ZMenu;
+import org.iceui.controls.ElementStyle;
 
+import com.jme3.font.BitmapFont.Align;
+import com.jme3.font.BitmapFont.VAlign;
 import com.jme3.input.event.MouseButtonEvent;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
-import com.jme3.math.Vector4f;
 
-import icetone.core.Element;
-import icetone.core.ElementManager;
+import icetone.controls.containers.TabControl;
+import icetone.controls.containers.TabControl.TabButton;
+import icetone.controls.menuing.Menu;
+import icetone.core.BaseElement;
+import icetone.core.BaseScreen;
+import icetone.core.event.MouseUIButtonEvent;
+import icetone.core.layout.ScreenLayoutConstraints;
 import icetone.core.layout.mig.MigLayout;
-import icetone.listeners.MouseButtonListener;
+import icetone.extras.util.ExtrasUtil;
+import icetone.extras.windows.DialogBox;
+import icetone.extras.windows.InputBox;
+import icetone.extras.windows.PersistentPanel;
+import icetone.extras.windows.SaveType;
 
-public class XChatWindow extends PersistentPanel implements MouseButtonListener {
+public class XChatWindow extends PersistentPanel {
 
 	private static final Logger LOG = Logger.getLogger(XChatWindow.class.getName());
 	private String chatBoldFont;
-
-	public void onMouseLeftPressed(MouseButtonEvent evt) {
-	}
-
-	public void onMouseLeftReleased(MouseButtonEvent evt) {
-	}
-
-	public void onMouseRightPressed(MouseButtonEvent evt) {
-	}
-
-	public void onMouseRightReleased(MouseButtonEvent evt) {
-		showChatTabMenu(evt.getX(), evt.getY());
-	}
 
 	public Object getChannels() {
 		throw new UnsupportedOperationException("Not supported yet."); // To
@@ -66,34 +55,26 @@ public class XChatWindow extends PersistentPanel implements MouseButtonListener 
 		ADD_TAB, DELETE_TAB, RENAME_TAB, SAVE_TAB, CONFIGURE_FILTERS
 	}
 
-	class XChatTabs extends XTabControl {
+	class XChatTabs extends TabControl {
 
-		XChatTabs(ElementManager screen, String uid) {
-			super(screen, uid, Vector2f.ZERO);
+		XChatTabs(BaseScreen screen, String uid) {
+			super(screen);
 			setIgnoreMouse(true);
 			getSlider().setIgnoreMouse(true);
 		}
 
 		@Override
-		public void addChild(Element child, boolean hide) {
-			super.addChild(child, hide);
+		public BaseElement attachElement(BaseElement child) {
+			super.attachElement(child);
 			if (child instanceof TabPanel) {
 				child.setIgnoreMouse(true);
-				child.borders.set(Vector4f.ZERO);
-				child.setColorMap(String.format("%s/Blank.png", screen.getStyle("Common").getString("textures")));
 			}
-		}
-
-		@Override
-		protected void onTabRightClick(int indexOf, MouseButtonEvent evt) {
-			setSelectedTabIndex(indexOf);
-			showChatTabMenu(evt.getX(), evt.getY());
+			return this;
 		}
 	}
 
-	private final XTabControl tabs;
+	private final TabControl tabs;
 	private final List<XChatBox> chatTabs = new ArrayList<XChatBox>();
-	private boolean showSendButton = true;
 	private int sendKey = -1;
 	private float chatFontSize = -1;
 	private String chatFont = null;
@@ -151,19 +132,20 @@ public class XChatWindow extends PersistentPanel implements MouseButtonListener 
 		return tab;
 	}
 
-	public XChatWindow(String configKey, ElementManager screen, Preferences pref) {
-		super(screen, configKey, screen.getStyle("Common").getInt("defaultWindowOffset"), VPosition.BOTTOM, HPosition.LEFT, screen
-				.getStyle("ChatWindow").getVector2f("defaultSize"), screen.getStyle("ChatWindow").getVector4f("resizeBorders"),
-				screen.getStyle("ChatWindow").getString("defaultImg"), SaveType.POSITION_AND_SIZE, pref);
+	public XChatWindow(String configKey, BaseScreen screen, Preferences pref) {
+		super(screen, configKey, 0, VAlign.Bottom, Align.Left, null, SaveType.POSITION_AND_SIZE, pref);
 		chatFontSize = -1;
 		chatFont = null;
 		chatBoldFont = null;
 		setLayoutManager(new MigLayout(screen, "", "[grow, fill]", "[grow, fill]"));
 		setIgnoreMouse(false);
-		tabs = new XChatTabs(screen, getUID() + ":tabs");
+		tabs = new XChatTabs(screen, getStyleId() + ":tabs");
 		tabs.setUseSlideEffect(true);
 		addTab("Default");
-		addChild(tabs);
+		addElement(tabs);
+		onMouseReleased(evt -> {
+			showChatTabMenu(evt.getX(), evt.getY());
+		}, MouseUIButtonEvent.RIGHT);
 	}
 
 	public void receiveMsg(String sender, String recipient, ChannelType channel, String text) {
@@ -179,21 +161,14 @@ public class XChatWindow extends PersistentPanel implements MouseButtonListener 
 	public void setChatFontSize(float chatFontSize) {
 		this.chatFontSize = chatFontSize;
 		for (XChatBox t : chatTabs) {
-			t.setChatFontSize(chatFontSize);
+			t.setFontSize(chatFontSize);
 		}
 	}
 
 	public void setChatFont(String chatFont) {
 		this.chatFont = chatFont;
 		for (XChatBox t : chatTabs) {
-			t.setChatFont(chatFont);
-		}
-	}
-
-	public void setChatBoldFont(String chatBoldFont) {
-		this.chatBoldFont = chatBoldFont;
-		for (XChatBox t : chatTabs) {
-			t.setChatBoldFont(chatBoldFont);
+			t.setFontFamily(chatFont);
 		}
 	}
 
@@ -236,7 +211,8 @@ public class XChatWindow extends PersistentPanel implements MouseButtonListener 
 		chatTabs.get(index).focusInput();
 	}
 
-	public final void addChatChannel(String UID, String name, Object command, String filterDisplayText, boolean visibleToUser) {
+	public final void addChatChannel(String UID, String name, Object command, String filterDisplayText,
+			boolean visibleToUser) {
 		ChannelDefinition def = new ChannelDefinition(UID, name, command, filterDisplayText, visibleToUser);
 		channels.add(def);
 		for (XChatBox ct : chatTabs) {
@@ -254,15 +230,11 @@ public class XChatWindow extends PersistentPanel implements MouseButtonListener 
 		for (ChannelDefinition c : channels) {
 			tab.addChatChannel(c);
 		}
-		int index = chatTabs.size();
 		if (chatFontSize != -1) {
-			tab.setChatFontSize(chatFontSize);
+			tab.setFontSize(chatFontSize);
 		}
 		if (chatFont != null) {
-			tab.setChatFont(chatFont);
-		}
-		if (chatBoldFont != null) {
-			tab.setChatBoldFont(chatBoldFont);
+			tab.setFontFamily(chatFont);
 		}
 		if (sendKey != -1) {
 			tab.setSendKey(sendKey);
@@ -270,9 +242,14 @@ public class XChatWindow extends PersistentPanel implements MouseButtonListener 
 		if (yourName != null) {
 			tab.setYourName(yourName);
 		}
-		tabs.addTabWithRMBSupport(tab.getTabName());
+		TabButton tabButton = new TabButton(screen, tab.getTabName());
+		tabs.addTab(tabButton, tab);
+		tabButton.onMouseReleased(evt -> {
+			tabs.setSelectedTabIndex(chatTabs.indexOf(tab));
+			showChatTabMenu(evt.getX(), evt.getY());
+
+		}, MouseUIButtonEvent.RIGHT);
 		chatTabs.add(tab);
-		tabs.addTabChild(index, tab);
 		tabs.layoutChildren();
 	}
 
@@ -341,9 +318,8 @@ public class XChatWindow extends PersistentPanel implements MouseButtonListener 
 			writer.println("<html><body>");
 			for (XChatBox.ChatMessage cm : cb.getChatMessage()) {
 				writer.print("<p style=\"color: ");
-				ChatChannel channel = cm.getChannel();
 				final ColorRGBA colorForCommand = cb.getColorForCommand(cm.getChannel().getCommand());
-				writer.print(UIUtil.toHexString(colorForCommand, false));
+				writer.print(ExtrasUtil.toHexString(colorForCommand, false));
 				writer.print(";\">");
 				writer.print(StringEscapeUtils.escapeHtml4(cm.getMsg()));
 				writer.println("</p>");
@@ -355,56 +331,58 @@ public class XChatWindow extends PersistentPanel implements MouseButtonListener 
 	}
 
 	private void newChatTab() {
-		FancyInputBox fib = new FancyInputBox(screen, orgPosition, FancyWindow.Size.LARGE, isMovable) {
+		InputBox fib = new InputBox(screen, Vector2f.ZERO, movable) {
+			{
+				setStyleClass("large");
+			}
+
 			@Override
 			public void onButtonCancelPressed(MouseButtonEvent evt, boolean toggled) {
-				hideWindow();
+				hide();
 			}
 
 			@Override
 			public void onButtonOkPressed(MouseButtonEvent evt, String text, boolean toggled) {
-				hideWindow();
+				hide();
 				newChatTab(text);
 			}
 		};
 		fib.setWindowTitle("New Tab");
 		fib.setDestroyOnHide(true);
-		fib.getDragBar().setFontColor(screen.getStyle("Common").getColorRGBA("warningColor"));
+		ElementStyle.warningColor(fib.getDragBar());
 		fib.setButtonOkText("Create");
-		fib.sizeToContent();
-		fib.setWidth(300);
-		fib.setIsResizable(false);
-		fib.setIsMovable(false);
-		UIUtil.center(screen, fib);
-		screen.addElement(fib, null, true);
-		fib.showAsModal(true);
+		fib.setResizable(false);
+		fib.setMovable(false);
+		fib.setModal(true);
+		screen.showElement(fib, ScreenLayoutConstraints.center);
 	}
 
 	private void renameChatTab() {
-		FancyInputBox fib = new FancyInputBox(screen, orgPosition, FancyWindow.Size.LARGE, isMovable) {
+		InputBox fib = new InputBox(screen, Vector2f.ZERO, movable) {
+			{
+				setStyleClass("large");
+			}
+
 			@Override
 			public void onButtonCancelPressed(MouseButtonEvent evt, boolean toggled) {
-				hideWindow();
+				hide();
 			}
 
 			@Override
 			public void onButtonOkPressed(MouseButtonEvent evt, String text, boolean toggled) {
-				hideWindow();
+				hide();
 				renameChatTab(tabs.getSelectedTabIndex(), text);
 			}
 		};
 		fib.setWindowTitle("Rename Tab");
 		fib.setDestroyOnHide(true);
-		fib.getDragBar().setFontColor(screen.getStyle("Common").getColorRGBA("warningColor"));
+		ElementStyle.warningColor(fib.getDragBar());
 		fib.setButtonOkText("Rename");
 		fib.setMsg(tabs.getTabTitle(tabs.getSelectedTabIndex()));
-		fib.sizeToContent();
-		fib.setWidth(300);
-		fib.setIsResizable(false);
-		fib.setIsMovable(false);
-		UIUtil.center(screen, fib);
-		screen.addElement(fib, null, true);
-		fib.showAsModal(true);
+		fib.setResizable(false);
+		fib.setMovable(false);
+		fib.setModal(true);
+		screen.showElement(fib, ScreenLayoutConstraints.center);
 	}
 
 	private void configureFilters() {
@@ -412,54 +390,36 @@ public class XChatWindow extends PersistentPanel implements MouseButtonListener 
 	}
 
 	private void deleteChatTab() {
-		final FancyDialogBox dialog = new FancyDialogBox(screen, new Vector2f(15, 15), Size.LARGE, true) {
+		final DialogBox dialog = new DialogBox(screen, new Vector2f(15, 15), true) {
+			{
+				setStyleClass("large");
+			}
+
 			@Override
 			public void onButtonCancelPressed(MouseButtonEvent evt, boolean toggled) {
-				hideWindow();
+				hide();
 			}
 
 			@Override
 			public void onButtonOkPressed(MouseButtonEvent evt, boolean toggled) {
 				deleteChatTab(tabs.getSelectedTabIndex());
-				hideWindow();
+				hide();
 			}
 		};
 		dialog.setDestroyOnHide(true);
-		dialog.getDragBar().setFontColor(screen.getStyle("Common").getColorRGBA("warningColor"));
+		ElementStyle.warningColor(dialog.getDragBar());
 		dialog.setWindowTitle("Delete Tab");
 		dialog.setButtonOkText("Delete Tab");
-		dialog.setMsg("Are you sure? This chat tab, it's content and all of it's filter settings will be removed permanently.");
-		dialog.sizeToContent();
-		dialog.setIsResizable(false);
-		dialog.setIsMovable(false);
-		UIUtil.center(screen, dialog);
-		screen.addElement(dialog, null, true);
-		dialog.showAsModal(true);
+		dialog.setMsg(
+				"Are you sure? This chat tab, it's content and all of it's filter settings will be removed permanently.");
+		dialog.setResizable(false);
+		dialog.setMovable(false);
+		dialog.setModal(true);
+		screen.showElement(dialog, ScreenLayoutConstraints.center);
 	}
 
 	private void showChatTabMenu(float x, float y) {
-		ZMenu subMenu = new ZMenu(screen) {
-
-			@Override
-			protected void onItemSelected(ZMenu.ZMenuItem item) {
-				switch ((TabMenuOption) item.getValue()) {
-				case SAVE_TAB:
-					saveChatTab();
-					break;
-				case ADD_TAB:
-					newChatTab();
-					break;
-				case RENAME_TAB:
-					renameChatTab();
-					break;
-				case DELETE_TAB:
-					deleteChatTab();
-					break;
-				case CONFIGURE_FILTERS:
-					configureFilters();
-					break;
-				}
-			}
+		Menu<TabMenuOption> subMenu = new Menu<TabMenuOption>(screen) {
 
 			@Override
 			public void controlHideHook() {
@@ -474,6 +434,25 @@ public class XChatWindow extends PersistentPanel implements MouseButtonListener 
 				onShowTabContextMenu();
 			}
 		};
+		subMenu.onChanged((evt) -> {
+			switch (evt.getNewValue().getValue()) {
+			case SAVE_TAB:
+				saveChatTab();
+				break;
+			case ADD_TAB:
+				newChatTab();
+				break;
+			case RENAME_TAB:
+				renameChatTab();
+				break;
+			case DELETE_TAB:
+				deleteChatTab();
+				break;
+			case CONFIGURE_FILTERS:
+				configureFilters();
+				break;
+			}
+		});
 
 		subMenu.addMenuItem("Add new tab", TabMenuOption.ADD_TAB);
 		int tabIndex = tabs.getSelectedTabIndex();

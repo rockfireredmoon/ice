@@ -12,7 +12,7 @@ public class UIConstants {
     /**
      * Warning sound (UI)
      */
-    public static String SOUND_WARNING = "warning";
+    public static String SOUND_WARNING = "sound://warning";
     
     public final static int CHAT_FONT_SIZE_DEFAULT = 12;
     
@@ -20,9 +20,4 @@ public class UIConstants {
      * Base time for UI effects
      */
     public static float UI_EFFECT_TIME = 0.5f;
-    
-    /**
-     * Default spinner speed
-     */
-    public static float SPINNER_SPEED = 10f;
 }

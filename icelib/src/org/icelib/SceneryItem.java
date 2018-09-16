@@ -20,16 +20,15 @@ public class SceneryItem {
 				return Type.CAVE;
 			} else if (asset.startsWith("Dng")) {
 				return Type.DUNGEON;
-			} else if (asset.startsWith("Prop")) {
-				return Type.PROP;
 			} else if (asset.startsWith("Par")) {
 				return Type.EFFECT;
 			} else if (asset.startsWith("CL")) {
 				return Type.CL;
 			} else if (asset.startsWith("Manipulator")) {
 				return Type.MANIPULATOR;
+			} else {
+				return Type.PROP;
 			}
-			throw new IllegalArgumentException("Unknown type. " + asset);
 		}
 
 		public boolean hasSubDir() {
@@ -185,7 +184,8 @@ public class SceneryItem {
 			bui.append("?");
 			boolean first = false;
 			for (Map.Entry<String, String> en : variables.entrySet()) {
-				if (defaultVariables.containsKey(en.getKey()) && defaultVariables.get(en.getKey()).equals(en.getValue())) {
+				if (defaultVariables.containsKey(en.getKey())
+						&& defaultVariables.get(en.getKey()).equals(en.getValue())) {
 					// Same as default, so skip it
 					continue;
 				}
@@ -270,9 +270,9 @@ public class SceneryItem {
 
 	@Override
 	public String toString() {
-		return "SceneryItem [location=" + location + ", scale=" + scale + ", rotation=" + rotation + ", asset=" + getAsset()
-				+ ", id=" + id + ", locked=" + locked + ", primary=" + primary + ", layer=" + layer + ", name=" + name + ", type="
-				+ type + "]";
+		return "SceneryItem [location=" + location + ", scale=" + scale + ", rotation=" + rotation + ", asset="
+				+ getAsset() + ", id=" + id + ", locked=" + locked + ", primary=" + primary + ", layer=" + layer
+				+ ", name=" + name + ", type=" + type + "]";
 	}
 
 }

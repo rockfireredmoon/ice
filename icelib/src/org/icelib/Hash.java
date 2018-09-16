@@ -8,6 +8,8 @@ package org.icelib;
 import java.security.MessageDigest;
 import java.util.Formatter;
 
+import org.apache.commons.codec.digest.DigestUtils;
+
 public class Hash {
 
 	public final static String AUTH_SALT = "key";
@@ -19,7 +21,8 @@ public class Hash {
 			+ "Xwz2P4wLYknUtIFLLZcQqFhlrcXRpsbtmc4JzKJqKPrsLlKby0PF3EGhSOLWfXO0bRrvpvXoxtuDnh2Z"
 			+ "F6GUqW4X9JeFvMbLV8mcMm1i37SNPMwILzy1JqbYTeVtJLDozCVftVo4dBQJcgb9CMLGeCxO5DT2Xw5X"
 			+ "gcyJgYXFFwRatjdPyLs4boM3aCTyWsNyNFfHArHati2mFGBS5CXqfazIhau6hyMlkxmGR3WUxioCpzq4"
-			+ "H7q6usn8oSETobwEqsAqdVeMk06621glbeV9yofr7SapSTnp2xXSyklDcr5hOiEoFdCLkePQQoAEAtEx" + "jKLu0aTpKMRmysq5kTiS";
+			+ "H7q6usn8oSETobwEqsAqdVeMk06621glbeV9yofr7SapSTnp2xXSyklDcr5hOiEoFdCLkePQQoAEAtEx"
+			+ "jKLu0aTpKMRmysq5kTiS";
 
 	public static String hash(String text, String username) {
 		return hash(text, username, AUTH_SALT);
@@ -46,6 +49,14 @@ public class Hash {
 				encoded = encode(instance.digest());
 			}
 			return encoded;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static String generateSalt(String in) {
+		try {
+			return DigestUtils.md5Hex((in + serverSalt + "\0").getBytes("ASCII"));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

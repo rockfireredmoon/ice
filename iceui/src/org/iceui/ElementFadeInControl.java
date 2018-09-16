@@ -4,13 +4,13 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.control.AbstractControl;
 
-import icetone.core.Element;
+import icetone.core.BaseElement;
 
 public class ElementFadeInControl extends AbstractControl {
 
 	@Override
 	protected void controlUpdate(float tpf) {
-		Element pic = (Element) getSpatial();
+		BaseElement pic = (BaseElement) getSpatial();
 		float alpha = pic.getGlobalAlpha();
 		if (alpha < 1) {
 			alpha += tpf;
@@ -21,7 +21,7 @@ public class ElementFadeInControl extends AbstractControl {
 	}
 
 	public void complete() {
-		Element pic = (Element) getSpatial();
+		BaseElement pic = (BaseElement) getSpatial();
 		pic.setGlobalAlpha(1);
 		pic.removeControl(this);
 	}

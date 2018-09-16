@@ -3,33 +3,35 @@ package org.iceui.controls;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.icelib.Icelib;
-
-import com.jme3.asset.AssetNotFoundException;
-import com.jme3.math.Vector2f;
-import com.jme3.math.Vector4f;
 import com.jme3.texture.Image;
 import com.jme3.texture.Texture;
 
-import icetone.controls.lists.Table.TableCell;
+import icetone.controls.table.TableCell;
+import icetone.core.BaseScreen;
+import icetone.core.Size;
 import icetone.core.Element;
-import icetone.core.ElementManager;
-import icetone.core.utils.UIDUtil;
 
 public class ImageTableCell extends TableCell {
 	public final static Logger LOG = Logger.getLogger(ImageTableCell.class.getName());
 	private Element img;
 	private float cellHeight;
 
-	public ImageTableCell(ElementManager screen, String name, float cellHeight) {
-		super(screen, name);
-		this.cellHeight = cellHeight;
-		setPreferredDimensions(new Vector2f(cellHeight, cellHeight));
+	public ImageTableCell(BaseScreen screen, String name, float cellHeight) {
+		this(screen, name, cellHeight, null);
 	}
 
-	public ImageTableCell(ElementManager screen, String name, float cellHeight, String imagePath) {
-		this(screen, name, cellHeight);
-		setImagePath(imagePath);
+	public ImageTableCell(BaseScreen screen, String name, float cellHeight, String imagePath) {
+		super(screen, name);
+		this.cellHeight = cellHeight;
+		setPreferredDimensions(new Size(cellHeight, cellHeight));
+
+		img = new Element(screen, new Size(cellHeight / 2f, cellHeight / 2f));
+		img.setStyleClass("image");
+		img.setIgnoreMouse(true);
+		addElement(img);
+
+		if (imagePath != null)
+			setImagePath(imagePath);
 	}
 
 	public void setImagePath(String imagePath) {
@@ -43,31 +45,21 @@ public class ImageTableCell extends TableCell {
 	}
 
 	public void setImage(Image image) {
-		if (img == null) {
-			img = new Element(screen, UIDUtil.getUID(), new Vector2f(cellHeight / 2f, cellHeight / 2f), Vector4f.ZERO, null);
-			img.setIgnoreMouse(true);
-			addChild(img);
-		}
 		if (image == null) {
 			img.setPreferredDimensions(getPreferredDimensions());
 		} else {
-			img.setColorMap(image);
+			img.setTexture(image);
 			float w = img.getElementTexture().getImage().getWidth();
 			float h = img.getElementTexture().getImage().getHeight();
 			float wr = cellHeight / 2f / w;
 			float wh = cellHeight / 2f / h;
 			float r = Math.max(wr, wh);
-			final Vector2f cellPref = new Vector2f(w * r, h * r);
+			final Size cellPref = new Size(w * r, h * r);
 			img.setPreferredDimensions(cellPref);
 		}
 	}
 
 	public void setImageTexture(Texture texture) {
-		if (img == null) {
-			img = new Element(screen, UIDUtil.getUID(), new Vector2f(cellHeight / 2f, cellHeight / 2f), Vector4f.ZERO, null);
-			img.setIgnoreMouse(true);
-			addChild(img);
-		}
 		if (texture == null) {
 			img.setPreferredDimensions(getPreferredDimensions());
 		} else {
@@ -77,8 +69,12 @@ public class ImageTableCell extends TableCell {
 			float wr = cellHeight / 2f / w;
 			float wh = cellHeight / 2f / h;
 			float r = Math.max(wr, wh);
-			final Vector2f cellPref = new Vector2f(w * r, h * r);
+			final Size cellPref = new Size(w * r, h * r);
 			img.setPreferredDimensions(cellPref);
 		}
+	}
+
+	public Element getImage() {
+		return img;
 	}
 }

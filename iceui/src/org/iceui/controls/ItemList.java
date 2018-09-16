@@ -7,126 +7,129 @@ import java.util.prefs.Preferences;
 
 import org.iceui.controls.ChooserFieldControl.ChooserPathTranslater;
 
-import com.jme3.input.event.MouseButtonEvent;
-import com.jme3.math.Vector2f;
-
-import icetone.controls.lists.Table;
-import icetone.controls.lists.Table.TableRow;
+import icetone.controls.buttons.PushButton;
+import icetone.controls.table.Table;
+import icetone.controls.table.TableRow;
 import icetone.controls.text.TextField;
-import icetone.core.Container;
+import icetone.core.BaseScreen;
+import icetone.core.StyledContainer;
 import icetone.core.Element;
-import icetone.core.ElementManager;
-import icetone.core.layout.LUtil;
+import icetone.core.layout.Border;
 import icetone.core.layout.mig.MigLayout;
+import icetone.extras.chooser.ChooserModel;
 
-public class ItemList<T, C extends ChooserFieldControl> extends Element {
+public class ItemList<T, C extends ChooserFieldControl<String>> extends Element {
 	private C chooser;
-	private FancyButton deleteItem;
-	private FancyButton upItem;
-	private FancyButton downItem;
-	private FancyButton newItem;
+	private PushButton deleteItem;
+	private PushButton upItem;
+	private PushButton downItem;
+	private PushButton newItem;
 	private TextField input;
 	protected Table items;
 	protected int row = -1;
 
-	public ItemList(ElementManager screen, Preferences prefs, Set<String> resources) {
+	public ItemList(BaseScreen screen, Preferences prefs, Set<String> resources) {
 		super(screen);
 
 		chooser = createChooser();
 		if (chooser == null) {
 			input = new TextField(screen);
 		}
-		newItem = new FancyButton(screen) {
-			@Override
-			public void onButtonMouseLeftUp(MouseButtonEvent evt, boolean toggled) {
-				row = -1;
-				setValue(null);
-				if (chooser != null)
-					chooser.showChooser(evt.getX(), evt.getY());
-				else
-					input.setTabFocus();
-				setAvailable();
+		newItem = new PushButton(screen) {
+			{
+				setStyleClass("fancy");
 			}
 		};
-		newItem.getMinDimensions().x = 64;
-		newItem.setButtonIcon(16, 16, "Interface/Styles/Gold/Common/Icons/new.png");
+		newItem.onMouseReleased(evt -> {
+			row = -1;
+			setValue(null);
+			if (chooser != null)
+				chooser.showChooser(evt.getX(), evt.getY());
+			else
+				input.focus();
+			setAvailable();
+		});
+		newItem.getButtonIcon().addStyleClass("button-icon icon-new");
 		newItem.setToolTipText("Add New Item");
 
-		deleteItem = new FancyButton(screen) {
-			@Override
-			public void onButtonMouseLeftUp(MouseButtonEvent evt, boolean toggled) {
-				String sel = items.isAnythingSelected() ? (String) items.getSelectedRow().getValue() : null;
-				if (sel != null) {
-					List<T> a = getValues();
-					a.remove(sel);
-					setValues(a);
-				}
-				onValuesChanged(getValues());
+		deleteItem = new PushButton(screen) {
+			{
+				setStyleClass("fancy");
 			}
 		};
-		deleteItem.getMinDimensions().x = 64;
-		deleteItem.setButtonIcon(16, 16, "Interface/Styles/Gold/Common/Icons/trash.png");
+		deleteItem.onMouseReleased(evt -> {
+			String sel = items.isAnythingSelected() ? (String) items.getSelectedRow().getValue() : null;
+			if (sel != null) {
+				List<T> a = getValues();
+				a.remove(sel);
+				setValues(a);
+			}
+			onValuesChanged(getValues());
+		});
+		deleteItem.getButtonIcon().addStyleClass("button-icon icon-trash");
 		deleteItem.setToolTipText("Delete Item");
 
-		upItem = new FancyButton(screen) {
-			@Override
-			public void onButtonMouseLeftUp(MouseButtonEvent evt, boolean toggled) {
-				int idx = Math.max(0, items.getSelectedRowIndex() - 1);
-				TableRow row = items.getSelectedRow();
-				items.removeRow(row);
-				items.insertRow(idx, row);
-				items.setSelectedRowIndex(idx);
-				items.scrollToSelected();
-				onValuesChanged(getValues());
+		upItem = new PushButton(screen) {
+			{
+				setStyleClass("fancy");
 			}
 		};
-		upItem.getMinDimensions().x = 64;
-		upItem.setButtonIcon(16, 16, "Interface/Styles/Gold/Common/Arrows/arrow_up.png");
+		upItem.onMouseReleased(evt -> {
+			int idx = Math.max(0, items.getSelectedRowIndex() - 1);
+			TableRow row = items.getSelectedRow();
+			items.removeRow(row);
+			items.insertRow(idx, row);
+			items.setSelectedRowIndex(idx);
+			items.scrollToSelected();
+			onValuesChanged(getValues());
+		});
+		ElementStyle.arrowButton(upItem, Border.NORTH);
 		upItem.setToolTipText("Move Item Up");
 
-		downItem = new FancyButton(screen) {
-			@Override
-			public void onButtonMouseLeftUp(MouseButtonEvent evt, boolean toggled) {
-				int idx = items.getSelectedRowIndex() + 1;
-				TableRow row = items.getSelectedRow();
-				items.removeRow(row);
-				items.insertRow(idx, row);
-				items.setSelectedRowIndex(idx);
-				items.scrollToSelected();
-				onValuesChanged(getValues());
+		downItem = new PushButton(screen) {
+			{
+				setStyleClass("fancy");
 			}
 		};
-		downItem.getMinDimensions().x = 64;
-		downItem.setButtonIcon(16, 16, "Interface/Styles/Gold/Common/Arrows/arrow_down.png");
+		downItem.onMouseReleased(evt -> {
+			int idx = items.getSelectedRowIndex() + 1;
+			TableRow row = items.getSelectedRow();
+			items.removeRow(row);
+			items.insertRow(idx, row);
+			items.setSelectedRowIndex(idx);
+			items.scrollToSelected();
+			onValuesChanged(getValues());
+		});
+		ElementStyle.arrowButton(downItem, Border.SOUTH);
 		downItem.setToolTipText("Move Item Up");
 
-		Container tools = new Container(screen);
+		StyledContainer tools = new StyledContainer(screen);
 		tools.setLayoutManager(new MigLayout(screen, "wrap 1, ins 0, fill", "[grow]", "[][][][]push"));
-		tools.addChild(newItem, "growx");
-		tools.addChild(deleteItem, "growx");
-		tools.addChild(upItem, "growx");
-		tools.addChild(downItem, "growx");
+		tools.addElement(newItem, "growx");
+		tools.addElement(deleteItem, "growx");
+		tools.addElement(upItem, "growx");
+		tools.addElement(downItem, "growx");
 
-		items = new Table(screen, Vector2f.ZERO, LUtil.LAYOUT_SIZE, screen.getStyle("TextField").getVector4f("resizeBorders"),
-				screen.getStyle("TextField").getString("defaultImg")) {
-			@SuppressWarnings("unchecked")
-			@Override
-			public void onChange() {
-				TableRow selectedRow = getSelectedRow();
-				setValue(selectedRow == null ? null : (T) selectedRow.getValue());
-				row = getSelectedRowIndex();
-				setAvailable();
-			}
-		};
-		items.setHeadersVisible(false);
-		items.addColumn("Sound");
+		items = new Table(screen);
+		items.onChanged(evt -> {
+			TableRow selectedRow = evt.getSource().getSelectedRow();
+			setValue(selectedRow == null ? null : (T) selectedRow.getValue());
+			row = evt.getSource().getSelectedRowIndex();
+			setAvailable();
+		});
+		configureTable();
 
 		setLayoutManager(new MigLayout(screen, "wrap 2", "[grow, fill][]", "[:32:][:128:]"));
-		addChild(chooser == null ? input : chooser, "span 2, growx");
-		addChild(items, "growx, growy");
-		addChild(tools, "growy, growx");
+		addElement(chooser == null ? input : chooser, "span 2, growx");
+		addElement(items, "growx, growy");
+		addElement(tools, "growy, growx");
 
 		setAvailable();
+	}
+
+	protected void configureTable() {
+		items.setHeadersVisible(false);
+		items.addColumn("Sound");
 	}
 
 	public void setValue(T value) {
@@ -137,12 +140,12 @@ public class ItemList<T, C extends ChooserFieldControl> extends Element {
 		}
 	}
 
-	public void setChooserPathTranslater(ChooserPathTranslater chooserPathTranslater) {
+	public void setChooserPathTranslater(ChooserPathTranslater<String> chooserPathTranslater) {
 		if (chooser != null)
 			chooser.setChooserPathTranslater(chooserPathTranslater);
 	}
 
-	public void setResources(Set<String> resources) {
+	public void setResources(ChooserModel<String> resources) {
 		if (chooser != null)
 			chooser.setResources(resources);
 	}
@@ -177,16 +180,20 @@ public class ItemList<T, C extends ChooserFieldControl> extends Element {
 
 	public void setAvailable() {
 		if (chooser != null) {
-			chooser.getChooserButton().setIsEnabled(items.isAnythingSelected());
+			chooser.getChooserButton().setEnabled(items.isAnythingSelected());
 		}
-		deleteItem.setIsEnabled(items.isAnythingSelected());
-		upItem.setIsEnabled(items.isAnythingSelected() && items.getSelectedRowIndex() > 0);
-		downItem.setIsEnabled(items.isAnythingSelected() && items.getSelectedRowIndex() < items.getRowCount() - 1);
+		deleteItem.setEnabled(items.isAnythingSelected());
+		upItem.setEnabled(items.isAnythingSelected() && items.getSelectedRowIndex() > 0);
+		downItem.setEnabled(items.isAnythingSelected() && items.getSelectedRowIndex() < items.getRowCount() - 1);
 	}
 
 	public void addChoice(T r) {
 		TableRow row = new TableRow(screen, items, r);
-		row.addCell(getDisplay(r), r);
+		configureRow(r, row);
 		items.addRow(row);
+	}
+
+	protected void configureRow(T r, TableRow row) {
+		row.addCell(getDisplay(r), r);
 	}
 }

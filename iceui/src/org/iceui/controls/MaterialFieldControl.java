@@ -1,53 +1,49 @@
 package org.iceui.controls;
 
-import java.util.Collection;
 import java.util.prefs.Preferences;
 
-import org.iceui.controls.chooser.ChooserPanel;
 import org.iceui.controls.chooser.MaterialView;
 
 import com.jme3.material.MaterialList;
 
-import icetone.core.ElementManager;
+import icetone.core.BaseScreen;
+import icetone.extras.chooser.ChooserModel;
+import icetone.extras.chooser.ChooserPanel;
 
-public abstract class MaterialFieldControl extends ChooserFieldControl {
+public abstract class MaterialFieldControl extends ChooserFieldControl<String> {
 
-	public MaterialFieldControl(ElementManager screen, String initial, Collection<String> resources, Preferences pref) {
+	public MaterialFieldControl(BaseScreen screen, String initial, ChooserModel<String> resources,
+			Preferences pref) {
 		super(screen, initial, resources, pref);
 	}
 
-	public MaterialFieldControl(ElementManager screen, String UID, String initial, 
-			Collection<String> resources, Preferences pref) {
+	public MaterialFieldControl(BaseScreen screen, String UID, String initial, ChooserModel<String> resources,
+			Preferences pref) {
 		super(screen, UID, initial, true, true, resources, pref);
 	}
 
-	public MaterialFieldControl(ElementManager screen, String initial, boolean showChooserButton,
-			Collection<String> resources, Preferences pref) {
+	public MaterialFieldControl(BaseScreen screen, String initial, boolean showChooserButton,
+			ChooserModel<String> resources, Preferences pref) {
 		super(screen, initial, false, showChooserButton, resources, pref);
 	}
 
-	public MaterialFieldControl(ElementManager screen, String UID, String initial, 
-			boolean showChooserButton, Collection<String> resources, Preferences pref) {
+	public MaterialFieldControl(BaseScreen screen, String UID, String initial, boolean showChooserButton,
+			ChooserModel<String> resources, Preferences pref) {
 		super(screen, UID, initial, false, showChooserButton, resources, pref);
 	}
 
 	public abstract MaterialList getMaterialList(String path);
 
 	@Override
-	protected ChooserPanel.ChooserView createView() {
+	protected ChooserPanel.ChooserView<String> createView() {
 		return new MaterialView(screen) {
 
 			@Override
 			protected MaterialList getMaterialList(String path) {
 				return MaterialFieldControl.this.getMaterialList(path);
 			}
-			
-		};
-	}
 
-	@Override
-	protected String getIconPath() {
-		return "BuildIcons/Icon-32-Build-PickImage.png";
+		};
 	}
 
 }

@@ -1,86 +1,99 @@
 package org.iceui.controls;
 
-import java.util.Collection;
-import java.util.Set;
 import java.util.prefs.Preferences;
 
 import org.icelib.Icelib;
-import org.iceui.controls.chooser.ChooserDialog;
-import org.iceui.controls.chooser.ChooserPanel;
 
-import com.jme3.input.event.MouseButtonEvent;
-
-import icetone.controls.buttons.Button;
-import icetone.controls.buttons.ButtonAdapter;
-import icetone.controls.form.Form;
+import icetone.controls.buttons.PushButton;
+import icetone.controls.containers.Frame;
 import icetone.controls.text.TextField;
+import icetone.core.BaseElement;
+import icetone.core.BaseScreen;
+import icetone.core.Form;
 import icetone.core.Element;
-import icetone.core.ElementManager;
-import icetone.core.layout.LUtil;
 import icetone.core.layout.mig.MigLayout;
-import icetone.core.utils.UIDUtil;
+import icetone.extras.chooser.ChooserDialog;
+import icetone.extras.chooser.ChooserModel;
+import icetone.extras.chooser.ChooserPanel;
+import icetone.fontawesome.FontAwesome;
 
-public abstract class ChooserFieldControl extends Element {
-	
-	public interface ChooserPathTranslater {
-		String getChooserPathForValue(String value);
-		String getValueForChooserPath(String chooserPath);
+public abstract class ChooserFieldControl<I> extends Element {
+
+	public interface ChooserPathTranslater<I> {
+		I getChooserPathForValue(String value);
+
+		String getValueForChooserPath(I chooserPath);
 	}
 
-	protected FancyWindow chooser;
-	protected Collection<String> resources;
+	protected Frame chooser;
+	protected ChooserModel<I> resources;
 	protected Preferences pref;
 	protected String chooserTitle = "Choose Resource";
 	protected TextField textField;
-	protected Button chooserButton;
+	protected PushButton chooserButton;
 	protected String value;
 	protected boolean showName;
 	protected boolean showChooserButton;
-	protected ChooserPathTranslater chooserPathTranslater;
+	protected ChooserPathTranslater<I> chooserPathTranslater;
+	protected boolean chooserModal = true;
 
-	public ChooserFieldControl(ElementManager screen, String initial, Collection<String> imageResources, Preferences pref) {
-		super(screen, UIDUtil.getUID(), LUtil.LAYOUT_SIZE);
+	public ChooserFieldControl(BaseScreen screen, String initial, ChooserModel<I> imageResources,
+			Preferences pref) {
+		super(screen);
 		init(initial, true, true, imageResources, pref);
 	}
 
-	public ChooserFieldControl(ElementManager screen, String initial, boolean showName,
-			boolean showChooserButton, Collection<String> imageResources, Preferences pref) {
-		super(screen, UIDUtil.getUID(), LUtil.LAYOUT_SIZE);
+	public ChooserFieldControl(BaseScreen screen, String initial, boolean showName, boolean showChooserButton,
+			ChooserModel<I> imageResources, Preferences pref) {
+		super(screen);
 		init(initial, showName, showChooserButton, imageResources, pref);
 	}
 
-	public ChooserFieldControl(ElementManager screen, String UID, String initial, boolean showName, boolean showChooserButton,
-			Collection<String> imageResources, Preferences pref) {
-		super(screen, UID, LUtil.LAYOUT_SIZE);
+	public ChooserFieldControl(BaseScreen screen, String styleId, String initial, boolean showName,
+			boolean showChooserButton, ChooserModel<I> imageResources, Preferences pref) {
+		super(screen, styleId);
 		init(initial, showName, showChooserButton, imageResources, pref);
 	}
 
-	public ChooserPathTranslater getChooserPathTranslater() {
+	public boolean isDialogModal() {
+		return chooserModal;
+	}
+
+	public ChooserFieldControl<I> setModal(boolean chooserModal) {
+		this.chooserModal = chooserModal;
+		return this;
+	}
+
+	public ChooserPathTranslater<I> getChooserPathTranslater() {
 		return chooserPathTranslater;
 	}
 
-	public Element getChooserButton() {
+	public BaseElement getChooserButton() {
 		return chooserButton;
 	}
 
-	public void setChooserPathTranslater(ChooserPathTranslater chooserPathTranslater) {
+	public ChooserFieldControl<I> setChooserPathTranslater(ChooserPathTranslater<I> chooserPathTranslater) {
 		this.chooserPathTranslater = chooserPathTranslater;
+		return this;
 	}
 
-	public void addToForm(Form form) {
+	public ChooserFieldControl<I> addToForm(Form form) {
 		if (textField != null) {
 			form.addFormElement(textField);
 		}
 		if (chooserButton != null) {
 			form.addFormElement(chooserButton);
 		}
-	}
-	
-	public void setResources(Set<String> resources) {
-		this.resources = resources;
+		return this;
 	}
 
-	private void init(String initial, boolean showName, boolean showChooserButton, Collection<String> resources, Preferences pref) {
+	public ChooserFieldControl<I> setResources(ChooserModel<I> resources) {
+		this.resources = resources;
+		return this;
+	}
+
+	private void init(String initial, boolean showName, boolean showChooserButton, ChooserModel<I> resources,
+			Preferences pref) {
 
 		value = initial;
 
@@ -95,7 +108,7 @@ public abstract class ChooserFieldControl extends Element {
 		if (showName) {
 			textField = new TextField(screen);
 			textField.setEditable(false);
-			addChild(textField, "growx");
+			addElement(textField, "growx");
 		}
 
 		// Chooser
@@ -108,14 +121,14 @@ public abstract class ChooserFieldControl extends Element {
 	}
 
 	protected void createChooserButton() {
-		chooserButton = new ButtonAdapter(screen) {
-			@Override
-			public void onButtonMouseLeftUp(MouseButtonEvent evt, boolean toggled) {
-				showChooser(evt.getX(), evt.getY());
+		chooserButton = new PushButton(screen) {
+			{
+				setStyleClass("chooser-button");
 			}
 		};
-		chooserButton.setButtonIcon(10, 10, getIconPath());
-		addChild(chooserButton, "wrap, growx, growy");
+		FontAwesome.SEARCH.button(16, chooserButton);
+		chooserButton.onMouseReleased(evt -> showChooser(evt.getX(), evt.getY()));
+		addElement(chooserButton, "wrap, growx, growy");
 
 	}
 
@@ -148,8 +161,7 @@ public abstract class ChooserFieldControl extends Element {
 
 	public void hideChooser() {
 		if (chooser != null) {
-			chooser.hideWithEffect();
-			screen.removeElement(chooser);
+			chooser.destroy();
 			chooser = null;
 		}
 	}
@@ -161,54 +173,56 @@ public abstract class ChooserFieldControl extends Element {
 		if (winX + chooser.getWidth() > screen.getWidth()) {
 			winX = x - chooser.getWidth() - 20;
 		}
-		chooser.pack(false);
+		chooser.sizeToContent();
 		chooser.setPosition(winX, screen.getHeight() - y - (int) (chooser.getHeight() / 2));
-		screen.addElement(chooser);
+		screen.showElement(chooser);
 		if (chooserButton != null) {
-			chooserButton.setIsEnabled(true);
+			chooserButton.setEnabled(true);
 		}
 	}
 
-	protected FancyWindow createChooser() {
-		ChooserDialog chooser = new ChooserDialog(screen, chooserTitle, resources, pref, createView()) {
-			@Override
-			public boolean onChosen(String path) {
-				if (path != null) {
-					setValueFromChooserPath(path);
-					updateControls();
-					onResourceChosen(value);
-				}
-				return true;
+	protected Frame createChooser() {
+		ChooserDialog<I> chooser = new ChooserDialog<I>(screen, getStyleId() + "-chooser", chooserTitle, resources,
+				pref, createView());
+		chooser.onChange(evt -> {
+			if (evt.getNewValue() != null && !evt.isTemporary()) {
+				setValueFromChooserPath(evt.getNewValue());
+				updateControls();
+				onResourceChosen(value);
+				if(!evt.isTemporary())
+					chooser.hide();
 			}
-		};
+		});
+		chooser.setModal(chooserModal);
 		if (resources == null) {
 			retrieveResources(chooser);
 		} else {
 			if (value != null) {
-				chooser.setSelectedFile(getChooserPathFromValue(), false);
+				chooser.setSelectedFile(getChooserPathFromValue());
 			}
 		}
 		return chooser;
 	}
 
-	protected void retrieveResources(ChooserDialog chooser) {
+	protected void retrieveResources(ChooserDialog<I> chooser) {
 		if (resources == null) {
 			resources = loadResources();
 			chooser.setResources(resources);
 		}
 	}
 
-	protected Collection<String> loadResources() {
+	protected ChooserModel<I> loadResources() {
 		throw new UnsupportedOperationException(
 				"No resources were supplied at construction, and loadResources() has not been implemented.");
 	}
 
-	protected void setValueFromChooserPath(String path) {
-		value = chooserPathTranslater == null ? path : chooserPathTranslater.getValueForChooserPath(path);
+	protected void setValueFromChooserPath(I path) {
+		value = chooserPathTranslater == null ? path.toString() : chooserPathTranslater.getValueForChooserPath(path);
 	}
 
-	protected String getChooserPathFromValue() {
-		return chooserPathTranslater == null ? value : chooserPathTranslater.getChooserPathForValue(value);
+	protected I getChooserPathFromValue() {
+		return chooserPathTranslater == null ? resources.parse(value)
+				: chooserPathTranslater.getChooserPathForValue(value);
 	}
 
 	protected void updateControls() {
@@ -219,24 +233,22 @@ public abstract class ChooserFieldControl extends Element {
 		}
 	}
 
-	protected abstract ChooserPanel.ChooserView createView();
+	protected abstract ChooserPanel.ChooserView<I> createView();
 
 	protected void createLayout() {
 		// Configure layout depending on options
 		if (showName) {
 			if (showChooserButton) {
-				setLayoutManager(new MigLayout(screen, "ins 0", "[grow][]", "[shrink 0, grow]"));
+				setLayoutManager(new MigLayout(screen, "ins 0, gap 0", "[grow]1[]", "[shrink 0, grow]"));
 			} else {
-				setLayoutManager(new MigLayout(screen, "ins 0", "[grow]", "[shrink 0, grow]"));
+				setLayoutManager(new MigLayout(screen, "ins 0, gap 0", "[grow]", "[shrink 0, grow]"));
 			}
 		} else {
 			if (showChooserButton) {
-				setLayoutManager(new MigLayout(screen, "ins 0", "[]", "[shrink 0, grow]"));
+				setLayoutManager(new MigLayout(screen, "ins 0, gap 0", "[]", "[shrink 0, grow]"));
 			} else {
 				throw new IllegalStateException();
 			}
 		}
 	}
-
-	protected abstract String getIconPath();
 }

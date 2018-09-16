@@ -1,0 +1,28 @@
+.button-icon {
+	font-family: fontawesome-24;
+	font-size: 24pt;
+}
+
+.icon-back {
+	-it-text: '\f104'; 
+}
+
+.icon-forward {
+	-it-text: '\f105'; 
+}
+
+.icon-up {
+	-it-text: '\f106'; 
+}
+
+.icon-down {
+	-it-text: '\f107'; 
+}
+
+.icon-new {
+	-it-text: '\f15b';
+}
+
+.icon-trash {
+	-it-text: '\f1f8';
+}

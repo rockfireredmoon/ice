@@ -26,9 +26,14 @@ public class AppInfo {
 	private final static Object LOCK = new Object();
 	private static String version;
 	private static String name;
+	private static Boolean dev;
+	
+	public static void setDev(boolean dev) {
+		AppInfo.dev = dev;
+	}
 
 	public static boolean isDev() {
-		return getVersion().indexOf("-DEV-") != -1;
+		return dev == null ? getVersion().indexOf("-DEV-") != -1 : dev;
 	}
 
 	public static String getName() {

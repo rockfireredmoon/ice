@@ -21,6 +21,8 @@ public class Color implements RGB {
 	public final static Color MAGENTA = new Color(255, 0, 255);
 	public final static Color CYAN = new Color(0, 255, 255);
 	public final static Color DARK_RED = new Color(128, 0, 0);
+	public final static Color ORANGE = new Color(255, 128, 0);
+	public final static Color GREY = new Color(128, 128, 128);
 
 	public static List<RGB> randomList(int count) {
 		List<RGB> r = new ArrayList<>();

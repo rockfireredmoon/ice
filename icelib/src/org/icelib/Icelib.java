@@ -158,7 +158,7 @@ public class Icelib {
 			if (ch == ' ') {
 				newWord = true;
 			}
-			if (newWord) {
+			else if (newWord && name) {
 				ch = Character.toUpperCase(ch);
 				newWord = false;
 			}

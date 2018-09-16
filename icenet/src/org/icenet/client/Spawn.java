@@ -197,7 +197,6 @@ public class Spawn {
 			LOG.fine(String.format("Firing Location of %s changed from %s to %s", getId(), oldLocation, serverLocation));
 		}
 
-		Icelib.removeMe("Firing Location of %s changed from %s to %s", getId(), oldLocation, serverLocation);
 		for (int i = listeners.size() - 1; i >= 0; i--) {
 			listeners.get(i).serverLocationChanged(this, oldLocation, warp);
 		}

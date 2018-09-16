@@ -1,15 +1,16 @@
 package org.iceui.controls;
 
-import java.util.Collection;
 import java.util.prefs.Preferences;
 
-import org.iceui.controls.chooser.ChooserPanel;
 import org.iceui.controls.chooser.SoundSourceDialog;
 import org.iceui.controls.chooser.SoundView;
 
-import icetone.core.ElementManager;
+import icetone.controls.containers.Frame;
+import icetone.core.BaseScreen;
+import icetone.extras.chooser.ChooserModel;
+import icetone.extras.chooser.ChooserPanel;
 
-public abstract class SoundFieldControl extends ChooserFieldControl {
+public abstract class SoundFieldControl extends ChooserFieldControl<String> {
 
 	private String prefKey = "sound";
 	private Type type;
@@ -18,25 +19,26 @@ public abstract class SoundFieldControl extends ChooserFieldControl {
 		RESOURCE, ALL
 	}
 
-	public SoundFieldControl(ElementManager screen, Type type, String initial, Collection<String> imageResources, Preferences pref) {
+	public SoundFieldControl(BaseScreen screen, Type type, String initial, ChooserModel<String> imageResources,
+			Preferences pref) {
 		super(screen, initial, imageResources, pref);
 		this.type = type;
 	}
 
-	public SoundFieldControl(ElementManager screen, Type type, String UID, String initial, boolean includeAlpha,
-			Collection<String> imageResources, Preferences pref) {
+	public SoundFieldControl(BaseScreen screen, Type type, String UID, String initial, boolean includeAlpha,
+			ChooserModel<String> imageResources, Preferences pref) {
 		super(screen, UID, initial, true, true, imageResources, pref);
 		this.type = type;
 	}
 
-	public SoundFieldControl(ElementManager screen, Type type, String initial, boolean showHex, boolean showChooserButton,
-			Collection<String> imageResources, Preferences pref) {
+	public SoundFieldControl(BaseScreen screen, Type type, String initial, boolean showHex,
+			boolean showChooserButton, ChooserModel<String> imageResources, Preferences pref) {
 		super(screen, initial, showHex, showChooserButton, imageResources, pref);
 		this.type = type;
 	}
 
-	public SoundFieldControl(ElementManager screen, Type type, String UID, String initial, boolean showHex,
-			boolean showChooserButton, Collection<String> imageResources, Preferences pref) {
+	public SoundFieldControl(BaseScreen screen, Type type, String UID, String initial, boolean showHex,
+			boolean showChooserButton, ChooserModel<String> imageResources, Preferences pref) {
 		super(screen, UID, initial, showHex, showChooserButton, imageResources, pref);
 		this.type = type;
 	}
@@ -51,27 +53,16 @@ public abstract class SoundFieldControl extends ChooserFieldControl {
 
 	@Override
 	protected void onResourceChosen(String newResource) {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
-	protected FancyWindow createChooser() {
+	protected Frame createChooser() {
 
-		SoundSourceDialog chooser = new SoundSourceDialog(screen, chooserTitle, resources, pref, createView(), true, prefKey, type) {
+		SoundSourceDialog chooser = new SoundSourceDialog(screen, getStyleId() + "-chooser", chooserTitle, resources,
+				pref, createView(), true, prefKey, type) {
 
 			protected boolean isAnyAudioPlaying() {
 				return SoundFieldControl.this.isAudioPlaying();
-			}
-			
-			@Override
-			protected boolean onChosen(Source source, String path) {
-				if (path != null) {
-					setValueFromChooserPath(path);
-					updateControls();
-					onResourceChosen(value);
-				}
-				return true;
 			}
 
 			@Override
@@ -85,12 +76,22 @@ public abstract class SoundFieldControl extends ChooserFieldControl {
 				setStopAvailable(false);
 			}
 		};
+		chooser.onChange(evt -> {
+			if (evt.getNewValue() != null) {
+				setValueFromChooserPath(evt.getNewValue());
+				updateControls();
+				onResourceChosen(value);
+			}
+			if (!evt.isTemporary())
+				chooser.hide();
+		});
+		chooser.setModal(isDialogModal());
 		if (value != null) {
-			chooser.setSelectedFile(getChooserPathFromValue(), false);
+			chooser.setSelectedFile(getChooserPathFromValue());
 		}
 		return chooser;
 	}
-	
+
 	protected boolean isAudioPlaying() {
 		return false;
 	}
@@ -99,7 +100,7 @@ public abstract class SoundFieldControl extends ChooserFieldControl {
 	}
 
 	@Override
-	protected ChooserPanel.ChooserView createView() {
+	protected ChooserPanel.ChooserView<String> createView() {
 		return new SoundView(screen) {
 			@Override
 			protected void onPlay(String path) {
@@ -107,11 +108,6 @@ public abstract class SoundFieldControl extends ChooserFieldControl {
 			}
 
 		};
-	}
-
-	@Override
-	protected String getIconPath() {
-		return String.format("%s/audio.png", screen.getStyle("Common").getString("iconPath"));
 	}
 
 	protected void playURL(SoundSourceDialog.Source source, String path) {

@@ -1,42 +1,40 @@
 package org.iceui.controls.chooser;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.prefs.Preferences;
 
-import org.iceui.controls.FancyButton;
 import org.iceui.controls.SoundFieldControl;
 import org.iceui.controls.SoundFieldControl.Type;
-import org.iceui.controls.chooser.ChooserPanel.ChooserView;
 
 import com.jme3.input.KeyInput;
-import com.jme3.input.event.KeyInputEvent;
-import com.jme3.input.event.MouseButtonEvent;
-import com.jme3.math.Vector2f;
 
-import icetone.controls.buttons.Button;
-import icetone.controls.buttons.ButtonAdapter;
+import icetone.controls.buttons.ButtonGroup;
+import icetone.controls.buttons.PushButton;
 import icetone.controls.buttons.RadioButton;
-import icetone.controls.buttons.RadioButtonGroup;
 import icetone.controls.lists.ComboBox;
 import icetone.controls.menuing.MenuItem;
 import icetone.controls.text.Label;
-import icetone.core.Container;
-import icetone.core.ElementManager;
+import icetone.core.BaseScreen;
+import icetone.core.StyledContainer;
+import icetone.core.layout.Border;
 import icetone.core.layout.BorderLayout;
 import icetone.core.layout.mig.MigLayout;
+import icetone.extras.chooser.AbstractChooserDialog;
+import icetone.extras.chooser.ChooserModel;
+import icetone.extras.chooser.ChooserPanel;
+import icetone.extras.chooser.ChooserPanel.ChooserView;
 
 /**
  */
-public abstract class SoundSourceDialog extends AbstractChooserDialog {
+public abstract class SoundSourceDialog extends AbstractChooserDialog<String> {
 
-	private final RadioButtonGroup bg;
-	private final RadioButton useResource;
-	private RadioButton useDownloadURL;
-	private RadioButton useStreamURL;
+	private final ButtonGroup<RadioButton<Source>> bg;
+	private final RadioButton<Source> useResource;
+	private RadioButton<Source> useDownloadURL;
+	private RadioButton<Source> useStreamURL;
 	private final boolean allowPreview;
-	private final RadioButton noSound;
+	private final RadioButton<Source> noSound;
 
 	public enum Source {
 
@@ -46,36 +44,22 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog {
 	private URLField streamURL;
 	private URLField downloadURL;
 	private Source source = Source.NONE;
-	private FancyButton stop;
+	private PushButton stop;
 	private String prefKey;
 	private org.iceui.controls.SoundFieldControl.Type type;
 	private List<Source> sources = new ArrayList<Source>();
 
-	abstract class URLField extends Container {
+	abstract class URLField extends StyledContainer {
 
 		private static final String STREAM_URLS = "StreamUrls";
 		// private final LTextField textField;
 		private final ComboBox<String> textField;
-		private ButtonAdapter playStreamURL;
+		private PushButton playStreamURL;
 
-		public URLField(ElementManager screen) {
+		public URLField(BaseScreen screen) {
 			super(screen);
 			setLayoutManager(new BorderLayout());
-			textField = new ComboBox<String>(screen) {
-				@Override
-				public void onChange(int selectedIndex, String value) {
-					setURL(value);
-				}
-
-				@Override
-				public void controlKeyPressHook(KeyInputEvent evt, String text) {
-					if (evt.getKeyCode() == KeyInput.KEY_RETURN) {
-						if (getText().length() > 0) {
-							setURL(getText());
-						}
-					}
-				}
-			};
+			textField = new ComboBox<String>(screen);
 			String statusListString = pref.get(prefKey + STREAM_URLS, "");
 			String[] statusList = statusListString.split("\n");
 			for (String s : statusList) {
@@ -85,18 +69,26 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog {
 			}
 
 			// textField = new LTextField(screen);
-			addChild(textField, BorderLayout.Border.CENTER);
+			addElement(textField, Border.CENTER);
 			if (allowPreview) {
-				Vector2f arrowSize = screen.getStyle("Common").getVector2f("arrowSize");
-				playStreamURL = new ButtonAdapter(screen, arrowSize.add(new Vector2f(3, 3))) {
-					@Override
-					public void onButtonMouseLeftUp(MouseButtonEvent evt, boolean toggled) {
-						onURLPlay(textField.getText());
+				playStreamURL = new PushButton(screen) {
+					{
+						setStyleClass("play-button");
 					}
 				};
-				playStreamURL.setButtonIcon(arrowSize.x, arrowSize.y, screen.getStyle("Common").getString("arrowRight"));
-				addChild(playStreamURL, BorderLayout.Border.EAST);
+				addElement(playStreamURL, Border.EAST);
 			}
+
+			// Events
+			textField.onKeyboardPressed(evt -> {
+				if (evt.getKeyCode() == KeyInput.KEY_RETURN) {
+					if (getText().length() > 0) {
+						setURL(getText());
+					}
+				}
+			});
+			textField.onChange(evt -> setURL(evt.getNewValue()));
+			playStreamURL.onMouseReleased(evt -> onURLPlay(textField.getText()));
 		}
 
 		String getURL() {
@@ -107,6 +99,8 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog {
 			if (!url.startsWith("http:") && !url.startsWith("https:")) {
 				return;
 			}
+			if (url.equals(textField.getSelectedValue()))
+				return;
 			StringBuilder sb = new StringBuilder();
 			for (MenuItem<String> i : textField.getListItems()) {
 				if (sb.length() > 0) {
@@ -115,7 +109,7 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog {
 				sb.append(i.getValue().toString());
 				if (i.getValue().equals(url)) {
 					// Already in list
-					textField.setSelectedByValue(i.getValue(), false);
+					textField.runAdjusting(() -> textField.setSelectedByValue(i.getValue()));
 					return;
 				}
 			}
@@ -125,9 +119,9 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog {
 			sb.append(url);
 			textField.addListItem(url, url);
 			pref.put(prefKey + STREAM_URLS, sb.toString());
-			textField.setSelectedByValue(sb.toString(), false);
-			textField.setCaretPositionToStart();
-			textField.selectTextRangeAll();
+			textField.runAdjusting(() -> textField.setSelectedByValue(sb.toString()));
+			textField.getTextField().setCaretPositionToStart();
+			textField.getTextField().selectTextRangeAll();
 
 		}
 
@@ -135,44 +129,39 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog {
 
 	}
 
-	public SoundSourceDialog(final ElementManager screen, String title, Collection<String> resources, Preferences pref,
-			ChooserView view, boolean allowPreview, String prefKey, SoundFieldControl.Type type) {
-		super(screen, title, resources, pref, view);
+	public SoundSourceDialog(final BaseScreen screen, String styleId, String title,
+			ChooserModel<String> resources, Preferences pref, ChooserView<String> view, boolean allowPreview,
+			String prefKey, SoundFieldControl.Type type) {
+		super(screen, styleId, title, resources, pref, view);
 
 		this.type = type;
 		this.prefKey = prefKey;
 		this.allowPreview = allowPreview;
 
 		if (type == org.iceui.controls.SoundFieldControl.Type.RESOURCE)
-			content.setLayoutManager(
-					new MigLayout(screen, "wrap 2, fill", "[shrink 0][]", "[shrink 0][shrink 0][fill, grow][shrink 0]"));
+			content.setLayoutManager(new MigLayout(screen, "wrap 2, fill", "[shrink 0][]",
+					"[shrink 0][shrink 0][fill, grow][shrink 0]"));
 		else
 			content.setLayoutManager(new MigLayout(screen, "wrap 2, fill", "[shrink 0][]",
 					"[shrink 0][shrink 0][shrink 0][shrink 0][shrink 0][shrink 0][fill, grow][shrink 0]"));
 
-		bg = new RadioButtonGroup(screen) {
-			@Override
-			public void onSelect(int index, Button value) {
-				source = Source.values()[index];
-				setAvailable();
-			}
-		};
+		bg = new ButtonGroup<RadioButton<Source>>();
 
 		// No sound
-		noSound = new RadioButton(screen);
-		noSound.setLabelText("No audio");
+		noSound = new RadioButton<Source>(screen).setValue(Source.NONE);
+		noSound.setText("No audio");
 		bg.addButton(noSound);
-		content.addChild(noSound, "span 2, growx");
+		content.addElement(noSound, "span 2, growx");
 		sources.add(Source.NONE);
 
 		if (type == org.iceui.controls.SoundFieldControl.Type.ALL) {
 			// Stream URL
-			useStreamURL = new RadioButton(screen);
-			useStreamURL.setLabelText("Stream from URL");
+			useStreamURL = new RadioButton<Source>(screen).setValue(Source.STREAM_URL);
+			useStreamURL.setText("Stream from URL");
 			bg.addButton(useStreamURL);
-			content.addChild(useStreamURL, "span 2, growx");
-			content.addChild(new Label("URL:", screen), "shrink 0");
-			content.addChild(streamURL = new URLField(screen) {
+			content.addElement(useStreamURL, "span 2, growx");
+			content.addElement(new Label("URL:", screen), "shrink 0");
+			content.addElement(streamURL = new URLField(screen) {
 				@Override
 				void onURLPlay(String url) {
 					SoundSourceDialog.this.onURLPlay(Source.STREAM_URL, getPlayURL());
@@ -181,12 +170,12 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog {
 			sources.add(Source.STREAM_URL);
 
 			// Download URL
-			useDownloadURL = new RadioButton(screen);
-			useDownloadURL.setLabelText("Download from URL");
+			useDownloadURL = new RadioButton<Source>(screen).setValue(Source.DOWNLOAD_URL);
+			useDownloadURL.setText("Download from URL");
 			bg.addButton(useDownloadURL);
-			content.addChild(useDownloadURL, "span 2, growx");
-			content.addChild(new Label("URL:", screen), "shrink 0");
-			content.addChild(downloadURL = new URLField(screen) {
+			content.addElement(useDownloadURL, "span 2, growx");
+			content.addElement(new Label("URL:", screen), "shrink 0");
+			content.addElement(downloadURL = new URLField(screen) {
 				@Override
 				void onURLPlay(String url) {
 					SoundSourceDialog.this.onURLPlay(Source.DOWNLOAD_URL, getPlayURL());
@@ -196,64 +185,58 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog {
 		}
 
 		// Local resource
-		useResource = new RadioButton(screen);
-		useResource.setLabelText("Use sound resource");
+		useResource = new RadioButton<Source>(screen).setValue(Source.DOWNLOAD_URL);
+		useResource.setText("Use sound resource");
 		bg.addButton(useResource);
-		content.addChild(useResource, "span 2, growx");
-		content.addChild(panel, "span 2, growx, growy");
+		content.addElement(useResource, "span 2, growx");
+		content.addElement(panel, "span 2, growx, growy");
 		sources.add(Source.RESOURCE);
 
 		// Close Window
-		FancyButton close = new FancyButton(screen) {
-			@Override
-			public void onButtonMouseLeftUp(MouseButtonEvent evt, boolean toggled) {
-				if (stop.getIsEnabled()) {
-					onStop();
-				}
-				Source selectedSource = getSource();
-				switch (selectedSource) {
-				case NONE:
-					if (onChosen(selectedSource, null)) {
-						hideWindow();
-					}
-					break;
-				case DOWNLOAD_URL:
-					if (onChosen(selectedSource, downloadURL.getText())) {
-						hideWindow();
-					}
-					break;
-				case RESOURCE:
-					if (onChosen(selectedSource, panel.getSelected())) {
-						hideWindow();
-					}
-					break;
-				case STREAM_URL:
-					String url = getPlayURL();
-					if (onChosen(selectedSource, url)) {
-						hideWindow();
-					}
-					break;
-				}
+		PushButton close = new PushButton(screen) {
+			{
+				setStyleClass("fancy");
 			}
 		};
+		close.onMouseReleased(evt -> {
+			if (stop.isEnabled()) {
+				onStop();
+			}
+			Source selectedSource = getSource();
+			switch (selectedSource) {
+			case NONE:
+				choose(null, getSelected(), false);
+				break;
+			case DOWNLOAD_URL:
+				choose(downloadURL.getText(), getSelected(), false);
+				break;
+			case RESOURCE:
+				choose(panel.getSelected(), getSelected(), false);
+				break;
+			case STREAM_URL:
+				String url = getPlayURL();
+				choose(url, getSelected(), false);
+				break;
+			}
+		});
 		close.setText("Select");
 
 		if (allowPreview) {
-			Container south = new Container(screen);
+			StyledContainer south = new StyledContainer(screen);
 			south.setLayoutManager(new MigLayout(screen, "ins 0, wrap 2, fill", "[]push[]", "[]"));
-			stop = new FancyButton(screen) {
-				@Override
-				public void onButtonMouseLeftUp(MouseButtonEvent evt, boolean toggled) {
-					onStop();
+			stop = new PushButton(screen) {
+				{
+					setStyleClass("fancy");
 				}
 			};
-			stop.setIsEnabled(isAnyAudioPlaying());
+			stop.onMouseReleased(evt -> onStop());
+			stop.setEnabled(isAnyAudioPlaying());
 			stop.setText("Stop");
-			south.addChild(stop);
-			south.addChild(close);
-			content.addChild(south, "span 2, growx");
+			south.addElement(stop);
+			south.addElement(close);
+			content.addElement(south, "span 2, growx");
 		} else {
-			content.addChild(close, "span 2, al right");
+			content.addElement(close, "span 2, al right");
 		}
 
 		//
@@ -261,6 +244,17 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog {
 		setDestroyOnHide(true);
 		setFolder(null);
 		setSource(Source.RESOURCE);
+
+		onElementEvent(evt -> {
+			if (stop.isEnabled()) {
+				onStop();
+			}
+		}, icetone.core.event.ElementEvent.Type.HIDDEN);
+
+		bg.onChange(evt -> {
+			source = evt.getSource().getSelected().getValue();
+			setAvailable();
+		});
 	}
 
 	protected boolean isAnyAudioPlaying() {
@@ -268,23 +262,24 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog {
 	}
 
 	@Override
-	protected ChooserPanel createPanel() {
-		return new ChooserPanel(screen, resources, pref, view) {
-			@Override
-			protected void onItemChosen(String path) {
-				if (onChosen(Source.RESOURCE, path)) {
-					hideWindow();
-				}
-			}
-		};
+	protected ChooserPanel<String> createPanel() {
+		return new ChooserPanel<String>(screen, resources, pref, view);
+		// {
+		// @Override
+		// protected void onItemChosen(String path) {
+		// if (onChosen(Source.RESOURCE, path)) {
+		// hide();
+		// }
+		// }
+		// };
 	}
 
 	public Source getSource() {
-		if (type == Type.ALL && useDownloadURL.getIsChecked()) {
+		if (type == Type.ALL && useDownloadURL.getState()) {
 			return Source.DOWNLOAD_URL;
-		} else if (type == Type.ALL && useStreamURL.getIsChecked()) {
+		} else if (type == Type.ALL && useStreamURL.getState()) {
 			return Source.STREAM_URL;
-		} else if (noSound.getIsChecked()) {
+		} else if (noSound.getState()) {
 			return Source.NONE;
 		}
 		return Source.RESOURCE;
@@ -294,14 +289,7 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog {
 		bg.setSelected(sources.indexOf(source));
 	}
 
-	@Override
-	protected final void onCloseChooser() {
-		if (stop.getIsEnabled()) {
-			onStop();
-		}
-	}
-
-	public void setSelectedFile(String file, boolean callback) {
+	public void setSelectedFile(String file) {
 		if (file == null || file.equals("")) {
 			setSource(Source.NONE);
 		} else if (file.startsWith("http://") || file.startsWith("https://")) {
@@ -321,7 +309,7 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog {
 
 		} else {
 			setSource(Source.RESOURCE);
-			super.setSelectedFile(file, callback);
+			super.setSelectedFile(file);
 		}
 	}
 
@@ -330,7 +318,7 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog {
 	}
 
 	public void setStopAvailable(boolean stopAvailable) {
-		stop.setIsEnabled(stopAvailable);
+		stop.setEnabled(stopAvailable);
 	}
 
 	protected void onURLPlay(Source source, String path) {
@@ -338,13 +326,6 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog {
 
 	protected void onStop() {
 	}
-
-	@Override
-	protected final boolean onChosen(String path) {
-		return onChosen(source, path);
-	}
-
-	protected abstract boolean onChosen(Source source, String path);
 
 	private String getPlayURL() {
 		if (source.equals(Source.DOWNLOAD_URL)) {
@@ -362,9 +343,9 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog {
 
 	private void setAvailable() {
 		if (type == org.iceui.controls.SoundFieldControl.Type.ALL) {
-			streamURL.setIsEnabled(bg.getSelected().equals(useStreamURL));
-			downloadURL.setIsEnabled(bg.getSelected().equals(useDownloadURL));
+			streamURL.setEnabled(bg.getSelected().equals(useStreamURL));
+			downloadURL.setEnabled(bg.getSelected().equals(useDownloadURL));
 		}
-		panel.setIsEnabled(bg.getSelected().equals(useResource));
+		panel.setEnabled(bg.getSelected().equals(useResource));
 	}
 }

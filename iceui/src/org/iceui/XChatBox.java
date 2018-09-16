@@ -7,37 +7,34 @@ package org.iceui;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.io.FilenameUtils;
 import org.icelib.ChannelType;
 import org.icelib.MessageParser;
-import org.iceui.controls.FancyPositionableWindow;
-import org.iceui.controls.FancyWindow;
-import org.iceui.controls.Swatch;
-import org.iceui.controls.UIUtil;
-import org.iceui.controls.color.ColorFieldControl;
-import org.iceui.controls.color.XColorSelector;
 
 import com.jme3.font.BitmapFont;
+import com.jme3.font.BitmapFont.Align;
+import com.jme3.font.BitmapFont.VAlign;
 import com.jme3.font.LineWrapMode;
 import com.jme3.input.KeyInput;
-import com.jme3.input.event.KeyInputEvent;
-import com.jme3.input.event.MouseButtonEvent;
-import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
-import com.jme3.math.Vector4f;
 
 import icetone.controls.buttons.CheckBox;
-import icetone.controls.form.Form;
 import icetone.controls.scrolling.ScrollPanel;
-import icetone.controls.text.TextElement;
-import icetone.controls.text.TextField;
+import icetone.controls.text.TextArea;
+import icetone.controls.text.TextArea.ReturnMode;
+import icetone.core.BaseElement;
+import icetone.core.BaseScreen;
 import icetone.core.Element;
-import icetone.core.ElementManager;
-import icetone.core.layout.LUtil;
-import icetone.core.layout.WrappingLayout;
+import icetone.core.Form;
+import icetone.core.Layout.LayoutType;
+import icetone.core.Size;
+import icetone.core.layout.ScreenLayoutConstraints;
 import icetone.core.layout.mig.MigLayout;
-import icetone.core.utils.UIDUtil;
-import icetone.listeners.MouseButtonListener;
+import icetone.extras.chooser.ColorFieldControl;
+import icetone.extras.chooser.ColorSelector;
+import icetone.extras.windows.PositionableFrame;
+import icetone.xhtml.XHTMLDisplay;
 
 /**
  * 
@@ -45,89 +42,23 @@ import icetone.listeners.MouseButtonListener;
  */
 public abstract class XChatBox extends Element {
 
-	private float chatFontSize;
 	private Object sbDefaultChannel;
 	private String yourName;
-	private String chatFont;
-	private String chatBoldFont;
 
-	class ChatLabel extends TextElement implements MouseButtonListener {
-
-		private final ChatMessage chatMessage;
-
-		ChatLabel(ElementManager screen, String uid, ChatMessage chatMessage) {
-			super(screen);
-			this.chatMessage = chatMessage;
-			setIgnoreMouse(false);
-			setIgnoreMouseWheel(true);
-			setIgnoreMouseLeftButton(true);
-			setTextWrap(LineWrapMode.Word);
-			setTextVAlign(BitmapFont.VAlign.Top);
-			addClippingLayer(this);
-			setIsResizable(false);
-			setIsMovable(false);
-		}
-
-		@Override
-		public void setDimensions(Vector2f dimensions) {
-			// TODO Auto-generated method stub
-			super.setDimensions(dimensions);
-			System.err.println("setDimensions(" + dimensions + ")");
-		}
-
-		@Override
-		public void setWidth(float width) {
-			// TODO Auto-generated method stub
-			super.setWidth(width);
-			System.err.println("setWidth(" + width + ")");
-		}
-
-		public void onMouseLeftPressed(MouseButtonEvent evt) {
-		}
-
-		public void onMouseLeftReleased(MouseButtonEvent evt) {
-			messageClicked(chatMessage, false);
-		}
-
-		public void onMouseRightPressed(MouseButtonEvent evt) {
-		}
-
-		public void onMouseRightReleased(MouseButtonEvent evt) {
-			messageClicked(chatMessage, true);
-		}
-
-		@Override
-		public void onUpdate(float tpf) {
-		}
-
-		@Override
-		public void onEffectStart() {
-		}
-
-		@Override
-		public void onEffectStop() {
-		}
-	}
-
-	private ScrollPanel saChatArea;
-	private TextField tfChatInput;
+	private XHTMLDisplay saChatArea;
+	private TextArea tfChatInput;
 	private boolean showChannelLabels = true;
 	private Form chatForm;
-	private FancyPositionableWindow filters = null;
+	private PositionableFrame filters = null;
 	float filterLineHeight;
-	float controlSpacing, controlSize, buttonWidth;
-	Vector4f indents;
 	private int sendKey;
 	private int chatHistorySize = 30;
 	protected List<ChatMessage> chatMessages = new ArrayList<>();
 	protected List<ChatChannel> channels = new ArrayList<>();
-	private String defaultCommand;
-	List<ChatLabel> displayMessages = new ArrayList<>();
-	private boolean inputFocussed;
 	private List<String> commandHistory = new ArrayList<String>();
 	private String textBeforeSearch;
 	private int currentHistoryIndex;
-	private Swatch channelIndicator;
+	private Element channelIndicator;
 	private String tabName;
 
 	/**
@@ -138,10 +69,8 @@ public abstract class XChatBox extends Element {
 	 * @param position
 	 *            A Vector2f containing the x/y position of the Element
 	 */
-	public XChatBox(ElementManager screen, String tabName) {
-		this(screen, UIDUtil.getUID(), screen.getStyle("ChatBox").getVector2f("defaultSize"),
-				screen.getStyle("ChatBox").getVector4f("resizeBorders"), screen.getStyle("ChatBox").getString("defaultImg"),
-				tabName);
+	public XChatBox(BaseScreen screen, String tabName) {
+		this(screen, null, tabName);
 	}
 
 	/**
@@ -155,45 +84,8 @@ public abstract class XChatBox extends Element {
 	 *            A Vector2f containing the width/height dimensions of the
 	 *            Element
 	 */
-	public XChatBox(ElementManager screen, Vector2f dimensions, String tabName) {
-		this(screen, UIDUtil.getUID(), dimensions, screen.getStyle("ChatBox").getVector4f("resizeBorders"),
-				screen.getStyle("ChatBox").getString("defaultImg"), tabName);
-	}
-
-	/**
-	 * Creates a new instance of the ChatBoxExt control
-	 * 
-	 * @param screen
-	 *            The screen control the Element is to be added to
-	 * @param position
-	 *            A Vector2f containing the x/y position of the Element
-	 * @param dimensions
-	 *            A Vector2f containing the width/height dimensions of the
-	 *            Element
-	 * @param resizeBorders
-	 *            A Vector4f containg the border information used when resizing
-	 *            the default image (x = N, y = W, z = E, w = S)
-	 * @param defaultImg
-	 *            The default image to use for the Slider's track
-	 */
-	public XChatBox(ElementManager screen, Vector2f dimensions, Vector4f resizeBorders, String defaultImg, String tabName) {
-		this(screen, UIDUtil.getUID(), dimensions, resizeBorders, defaultImg, tabName);
-	}
-
-	/**
-	 * Creates a new instance of the ChatBoxExt control
-	 * 
-	 * @param screen
-	 *            The screen control the Element is to be added to
-	 * @param UID
-	 *            A unique String identifier for the Element
-	 * @param position
-	 *            A Vector2f containing the x/y position of the Element
-	 */
-	public XChatBox(ElementManager screen, String UID, String tabName) {
-		this(screen, UID, screen.getStyle("ChatBox").getVector2f("defaultSize"),
-				screen.getStyle("ChatBox").getVector4f("resizeBorders"), screen.getStyle("ChatBox").getString("defaultImg"),
-				tabName);
+	public XChatBox(BaseScreen screen, Size dimensions, String tabName) {
+		this(screen, null, dimensions, tabName);
 	}
 
 	/**
@@ -209,9 +101,8 @@ public abstract class XChatBox extends Element {
 	 *            A Vector2f containing the width/height dimensions of the
 	 *            Element
 	 */
-	public XChatBox(ElementManager screen, String UID, Vector2f dimensions, String tabName) {
-		this(screen, UID, dimensions, screen.getStyle("ChatBox").getVector4f("resizeBorders"),
-				screen.getStyle("ChatBox").getString("defaultImg"), tabName);
+	public XChatBox(BaseScreen screen, String UID, Size dimensions, String tabName) {
+		this(screen, UID, null, dimensions, tabName);
 	}
 
 	/**
@@ -232,95 +123,74 @@ public abstract class XChatBox extends Element {
 	 * @param defaultImg
 	 *            The default image to use for the Slider's track
 	 */
-	public XChatBox(ElementManager screen, String UID, Vector2f dimensions, Vector4f resizeBorders, String defaultImg,
-			String tabName) {
-		super(screen, UID, dimensions, resizeBorders, defaultImg);
+	public XChatBox(BaseScreen screen, String UID, Vector2f position, Size dimensions, String tabName) {
+		super(screen, UID, position, dimensions);
 
 		this.tabName = tabName;
 		// this.setIsMovable(false);
 		setIgnoreMouse(true);
-		this.setIsResizable(false);
+		this.setResizable(false);
 
-		setLayoutManager(new MigLayout(screen, "hidemode 2, ins 0, gap 0", "[][grow, fill]", "[fill, grow][]"));
+		setLayoutManager(new MigLayout(screen, "hidemode 2, ins 0", "[][grow, fill]", "[fill, grow][shrink 0]"));
 
-		chatFontSize = screen.getStyle("ChatBox").getFloat("fontSize");
-		chatFont = screen.getStyle("ChatBox").getString("defaultFont");
-		chatBoldFont = screen.getStyle("ChatBox").getString("strongFont");
 		chatForm = new Form(screen);
 
-		setFontSize(screen.getStyle("Common").getFloat("fontSize"));
-		indents = screen.getStyle("ChatBox").getVector4f("contentIndents");
-		controlSpacing = screen.getStyle("Common").getFloat("defaultControlSpacing");
-		controlSize = screen.getStyle("Common").getFloat("defaultControlSize");
-		buttonWidth = screen.getStyle("Button").getVector2f("defaultSize").x;
+		saChatArea = new XHTMLDisplay(screen);
 
-		saChatArea = new ScrollPanel(screen, UID + ":ChatArea", Vector2f.ZERO, LUtil.LAYOUT_SIZE, Vector4f.ZERO, null);
-		saChatArea.setTextPadding(0);
-		saChatArea.setClipPadding(0);
-		saChatArea.setResizeBorders(0);
-		saChatArea.setIgnoreMouseLeftButton(true);
-		saChatArea.getScrollBounds().setIgnoreMouseLeftButton(true);
-		saChatArea.getScrollableArea().setIgnoreMouseLeftButton(true);
-		saChatArea.setIsResizable(false);
-		// saChatArea.setIsMovable(false);
-		((WrappingLayout) saChatArea.getScrollContentLayout()).setOrientation(Element.Orientation.HORIZONTAL);
-		((WrappingLayout) saChatArea.getScrollContentLayout()).setFill(true);
-		// final float insets =
-		// screen.getStyle("ChatBox").getFloat("scrollAreaInsets");
-		// ((WrappingLayout) saChatArea.getScrollContentLayout()).setMargin(new
-		// Vector4f(insets,insets,insets,insets));
-		saChatArea.setText("");
-		addChild(saChatArea, "span 2, wrap, growx");
+		// saChatArea = new ScrollPanel(screen, UID + ":ChatArea",
+		// Vector2f.ZERO, LUtil.LAYOUT_SIZE, Vector4f.ZERO, null);
+		// saChatArea.setTextPadding(0);
+		// saChatArea.setClipPadding(0);
+		// saChatArea.setResizeBorders(0);
+		// saChatArea.setIgnoreMouseLeftButton(true);
+		// saChatArea.getScrollBounds().setIgnoreMouseLeftButton(true);
+		// saChatArea.getScrollableArea().setIgnoreMouseLeftButton(true);
+		// saChatArea.setIsResizable(false);
+		// // saChatArea.setIsMovable(false);
+		// ((WrappingLayout)
+		// saChatArea.getScrollContentLayout()).setOrientation(Element.Orientation.HORIZONTAL);
+		// ((WrappingLayout) saChatArea.getScrollContentLayout()).setFill(true);
+		// // final float insets =
+		// // screen.getStyle("ChatBox").getFloat("scrollAreaInsets");
+		// // ((WrappingLayout)
+		// saChatArea.getScrollContentLayout()).setMargin(new
+		// // Vector4f(insets,insets,insets,insets));
+		// saChatArea.setText("");
 
-		channelIndicator = new Swatch(screen) {
-			public void onMouseLeftReleased(MouseButtonEvent evt) {
-			}
-		};
+		addElement(saChatArea, "span 2, wrap, growx");
+
+		channelIndicator = new Element(screen);
+		channelIndicator.setStyleClass("swatch");
 		channelIndicator.setIgnoreGlobalAlpha(true);
-		channelIndicator.setIsVisible(false);
-		addChild(channelIndicator, "growx, growy, ay top");
+		channelIndicator.setVisible(false);
+		addElement(channelIndicator, "growx, growy, ay top");
 
-		tfChatInput = new TextField(screen, UID + ":ChatInput") {
-			@Override
-			public void controlKeyPressHook(KeyInputEvent evt, String text) {
-				if (evt.getKeyCode() == KeyInput.KEY_UP) {
-					previousHistory();
-					evt.setConsumed();
-				} else if (evt.getKeyCode() == KeyInput.KEY_DOWN) {
-					nextHistory();
-					evt.setConsumed();
-				} else if (evt.getKeyCode() == sendKey) {
-					if (tfChatInput.getText().length() > 0) {
-						// tfChatInput.setText(tfChatInput.getText().substring(0,tfChatInput.getText().length()-1));
-						sendMsg();
-					}
-				} else if (evt.getKeyCode() == KeyInput.KEY_ESCAPE) {
-					screen.setKeyboardElement(null);
-					screen.resetTabFocusElement();
+		tfChatInput = new TextArea(screen);
+		tfChatInput.setReturnMode(ReturnMode.NEWLINE_ON_SHIFT_RETURN);
+		tfChatInput.setRows(3);
+		tfChatInput.onKeyboardReleased(evt -> {
+			if (evt.getKeyCode() == KeyInput.KEY_UP && evt.isCtrl()) {
+				previousHistory();
+				evt.setConsumed();
+			} else if (evt.getKeyCode() == KeyInput.KEY_DOWN && evt.isCtrl()) {
+				nextHistory();
+				evt.setConsumed();
+			} else if (evt.getKeyCode() == sendKey && !evt.isShift()) {
+				if (tfChatInput.getText().length() > 0) {
+					// tfChatInput.setText(tfChatInput.getText().substring(0,tfChatInput.getText().length()-1));
+					sendMsg();
 				}
+				dirtyLayout(false, LayoutType.boundsChange());
+				layoutChildren();
+				evt.setConsumed();
 			}
-
-			@Override
-			public void onGetFocus(MouseMotionEvent evt) {
-				super.onGetFocus(evt);
-				inputFocussed = true;
-			}
-
-			@Override
-			public void onLoseFocus(MouseMotionEvent evt) {
-				super.onLoseFocus(evt);
-				inputFocussed = false;
-			}
-		};
+		});
 		tfChatInput.setIgnoreGlobalAlpha(true);
 		tfChatInput.setTextWrap(LineWrapMode.Word);
 		tfChatInput.setTextVAlign(BitmapFont.VAlign.Top);
-		addChild(tfChatInput, "growx");
+		// addElement(new ScrollPanel(screen, tfChatInput), "growx");
+		addElement(tfChatInput, "growx");
 		chatForm.addFormElement(tfChatInput);
-
-		LUtil.removeEffects(this);
-		populateEffects("ChatBox");
-		LUtil.noScaleNoDock(this);
 	}
 
 	public void setTabName(String tabName) {
@@ -340,49 +210,42 @@ public abstract class XChatBox extends Element {
 
 	public void showChatFiltersWindow() {
 		if (filters == null) {
-			filters = new FancyPositionableWindow(screen, getUID() + "Filters", 0, VPosition.MIDDLE, HPosition.CENTER,
-					new Vector2f(400, 400), FancyWindow.Size.LARGE, true);
+			filters = new PositionableFrame(screen, getStyleId() + "Filters", 0, VAlign.Center, Align.Center,
+					new Size(400, 400), true) {
+				{
+					setStyleClass("large");
+				}
+			};
 
 			filters.setWindowTitle("Filters for " + tabName);
-			filters.setIsMovable(false);
-			filters.setIsResizable(false);
-			UIUtil.center(screen, filters);
-			Element content = filters.getContentArea();
+			filters.setMovable(false);
+			filters.setResizable(false);
+			BaseElement content = filters.getContentArea();
 			content.setLayoutManager(new MigLayout(screen, "wrap 2, fill", "[grow, fill][24!]", "[grow]"));
 
 			for (final ChatChannel channel : channels) {
 				if (channel.getVisibleToUser()) {
-					CheckBox cb = new CheckBox(screen) {
-						@Override
-						public void onButtonMouseLeftUp(MouseButtonEvent evt, boolean isToggled) {
-							channel.setIsFiltered(!isToggled);
-							channelChanged(channel);
-							rebuildChat();
-						}
-					};
-					cb.setIsCheckedNoCallback(!channel.getIsFiltered());
-					cb.setLabelText(channel.getFilterDisplayText());
-					content.addChild(cb);
+					CheckBox cb = new CheckBox(screen);
+					cb.setChecked(!channel.getIsFiltered());
+					cb.onChange(evt -> {
+						channel.setIsFiltered(!evt.getNewValue());
+						channelChanged(channel);
+						rebuildChat();
+					});
+					cb.setText(channel.getFilterDisplayText());
+					content.addElement(cb);
 
-					ColorFieldControl cfc = new ColorFieldControl(screen, getColorForCommand(channel.getCommand()), false, false,
-							false) {
-						@Override
-						protected void onChangeColor(ColorRGBA newColor) {
-							changeChannelColor(channel, newColor);
-						}
-					};
-					cfc.setTabs(XColorSelector.ColorTab.PALETTE, XColorSelector.ColorTab.WHEEL);
+					ColorFieldControl cfc = new ColorFieldControl(screen, getColorForCommand(channel.getCommand()),
+							false, false);
+					cfc.onChange(evt -> changeChannelColor(channel, evt.getNewValue()));
+					cfc.setTabs(ColorSelector.ColorTab.PALETTE, ColorSelector.ColorTab.WHEEL);
 					cfc.setChooserText("Choose colour for " + channel.getFilterDisplayText());
-					content.addChild(cfc);
+					content.addElement(cfc);
 				}
 			}
-			UIUtil.center(screen, filters);
-			screen.addElement(filters, null, true);
-			filters.showAsModal(true);
-		} else {
-			filters.showAsModal(true);
+			filters.setModal(true);
 		}
-
+		screen.showElement(filters, ScreenLayoutConstraints.center);
 	}
 
 	public String getTabName() {
@@ -420,29 +283,8 @@ public abstract class XChatBox extends Element {
 	}
 
 	public void setShowChannelIndicator(boolean showChannelIndicator) {
-		channelIndicator.setIsVisible(showChannelIndicator);
+		channelIndicator.setVisible(showChannelIndicator);
 		layoutChildren();
-	}
-
-	public void setChatFontSize(float chatFontSize) {
-		this.chatFontSize = chatFontSize;
-		rebuildChat();
-	}
-
-	public void setChatFont(String chatFont) {
-		if (chatFont == null) {
-			throw new IllegalArgumentException();
-		}
-		this.chatFont = chatFont;
-		rebuildChat();
-	}
-
-	public void setChatBoldFont(String chatBoldFont) {
-		if (chatBoldFont == null) {
-			throw new IllegalArgumentException();
-		}
-		this.chatBoldFont = chatBoldFont;
-		rebuildChat();
 	}
 
 	public ScrollPanel getChatArea() {
@@ -456,7 +298,7 @@ public abstract class XChatBox extends Element {
 	protected void onChannelChange(Object command) {
 		ChatChannel ch = getChannelByCommand(command);
 		if (ch != null) {
-			channelIndicator.setColor(getColorForCommand(command));
+			channelIndicator.setDefaultColor(getColorForCommand(command));
 		}
 	}
 
@@ -506,7 +348,7 @@ public abstract class XChatBox extends Element {
 	 */
 	public void receiveMsg(String sender, String recipient, Object command, String msg) {
 		ChatChannel channel = null;
-		Element wasFocussed = screen.getTabFocusElement();
+		BaseElement wasFocussed = screen.getKeyboardFocus();
 		if (command instanceof String) {
 			channel = getChannelByStringCommand((String) command);
 		} else {
@@ -518,13 +360,29 @@ public abstract class XChatBox extends Element {
 		final ChatMessage chatMessage = new ChatMessage(channel, msg, sender, recipient);
 		chatMessages.add(chatMessage);
 		clearHistory();
-		if (!channel.getIsFiltered()) {
-			createAndAddMessageLabel(displayMessages.size(), chatMessage);
-		}
-		saChatArea.layoutChildren();
+		rebuildChat();
+		// saChatArea.layoutChildren();
 
 		if (wasFocussed != null && wasFocussed.equals(tfChatInput)) {
-			screen.setTabFocusElement(tfChatInput);
+			screen.setKeyboardFocus(tfChatInput);
+		}
+	}
+
+	@Override
+	public BaseElement setFontSize(float fontSize) {
+		try {
+			return super.setFontSize(fontSize);
+		} finally {
+			rebuildChat();
+		}
+	}
+
+	@Override
+	public BaseElement setFontFamily(String fontFamily) {
+		try {
+			return super.setFontFamily(fontFamily);
+		} finally {
+			rebuildChat();
 		}
 	}
 
@@ -533,20 +391,88 @@ public abstract class XChatBox extends Element {
 	}
 
 	protected void rebuildChat() {
-		String displayText = "";
-		int index = 0;
-		saChatArea.getScrollableArea().removeAllChildren();
-		//
-		displayMessages.clear();
-
-		float totalHeight = 0;
+		final StringBuilder bui = new StringBuilder();
+		bui.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+		bui.append("<!DOCTYPE html>\n");
+		bui.append("<html xmlns=\"http://www.w3.org/1999/xhtml\">\n");
+		bui.append("<head>");
+		bui.append(String.format(
+				"<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\" title=\"Style\" media=\"screen\" />",
+				"/Interface/Styles/Gold/Chat/chat.css"));
+		bui.append("</head>");
+		bui.append("<body style=\"background: inherit; ");
+		bui.append("\">\n");
 		for (ChatMessage cm : chatMessages) {
-			if (!cm.getChannel().getIsFiltered()) {
-				createAndAddMessageLabel(index, cm);
-				index++;
+			MessageParser mp = new MessageParser();
+			mp.parse(cm.getMsg());
+			List<MessageParser.MessageElement> els = mp.getElements();
+
+			boolean bold = false;
+			String channelLabel = "";
+			final ChannelType channelType = (ChannelType) cm.channel.getCommand();
+			if (!channelType.isChat()) {
+				if (showChannelLabels) {
+					channelLabel = "[" + cm.getChannel().getName() + "]:";
+				}
+			} else {
+				channelLabel = cm.sender == null ? (yourName == null ? "You" : yourName) : cm.sender;
+				if (mp.isAct()) {
+					bold = true;
+					channelLabel += " ";
+				} else {
+					if (channelType.hasSubChannel()) {
+						channelLabel = cm.sender == null ? "You" : cm.sender;
+						channelLabel += " tell";
+						if (cm.recipient == null) {
+							channelLabel += "s you";
+						} else {
+							channelLabel += " " + cm.recipient;
+						}
+						channelLabel += ":";
+					} else {
+						channelLabel += " says:";
+					}
+				}
 			}
+
+			// Create text
+			StringBuilder txt = new StringBuilder();
+			txt.append(channelLabel);
+			for (MessageParser.MessageElement el : els) {
+				switch (el.getType()) {
+				case LINK:
+					txt.append(el.getValue());
+				default:
+					txt.append(el.getValue());
+				}
+			}
+
+			bui.append("<p style=\"color: #");
+
+			ColorRGBA cmdcol = getColorForCommand(cm.getChannel().getCommand());
+			bui.append(IceUI.toHexNumber(cmdcol));
+			bui.append(";");
+			if (getFontFamily() != null) {
+				bui.append("font-family: '");
+				bui.append(FilenameUtils.getBaseName(getFontFamily()));
+				bui.append("';");
+			}
+			if (getFontSize() > 1) {
+				bui.append("font-size: ");
+				bui.append((int) getFontSize());
+				bui.append("pt;");
+			}
+			bui.append("\">");
+			if (bold)
+				bui.append("<strong>");
+			bui.append(txt.toString());
+			if (bold)
+				bui.append("</strong>");
+			bui.append("</p>");
 		}
-		layoutChildren();
+		bui.append("</body>\n");
+		bui.append("</html>\n");
+		saChatArea.setDocumentFromString(bui.toString(), "asset://chat.html");
 		saChatArea.scrollToBottom();
 	}
 
@@ -556,102 +482,103 @@ public abstract class XChatBox extends Element {
 		}
 	}
 
-	private void createAndAddMessageLabel(int index, ChatMessage cm) {
-		ChatLabel l = createMessageLabel(index, cm);
-		displayMessages.add(l);
-		saChatArea.addScrollableContent(l);
-	}
+	// private void createAndAddMessageLabel(int index, ChatMessage cm) {
+	// ChatLabel l = createMessageLabel(index, cm);
+	// displayMessages.add(l);
+	// saChatArea.addScrollableContent(l);
+	// }
+	//
+	// private ChatLabel createMessageLabel(int index, ChatMessage cm) {
+	// MessageParser mp = new MessageParser();
+	// mp.parse(cm.getMsg());
+	// List<MessageParser.MessageElement> els = mp.getElements();
+	//
+	// ChatLabel l = new ChatLabel(screen, getUID() + ":Label" + index, cm);
+	// l.setFontColor(getColorForCommand(cm.getChannel().getCommand()));
+	// System.err.println("setting fnt: " + chatFont + " / " + chatFontSize);
+	// l.setFont(chatFont);
+	// l.setFontSize(chatFontSize);
+	// String channelLabel = "";
+	// final ChannelType channelType = (ChannelType) cm.channel.getCommand();
+	// if (!channelType.isChat()) {
+	// if (showChannelLabels) {
+	// channelLabel = "[" + cm.getChannel().getName() + "]:";
+	// }
+	// } else {
+	// channelLabel = cm.sender == null ? (yourName == null ? "You" : yourName)
+	// : cm.sender;
+	// if (mp.isAct()) {
+	// l.setFont(chatBoldFont);
+	// channelLabel += " ";
+	// } else {
+	// if (channelType.hasSubChannel()) {
+	// channelLabel = cm.sender == null ? "You" : cm.sender;
+	// channelLabel += " tell";
+	// if (cm.recipient == null) {
+	// channelLabel += "s you";
+	// } else {
+	// channelLabel += " " + cm.recipient;
+	// }
+	// channelLabel += ":";
+	// } else {
+	// channelLabel += " says:";
+	// }
+	// }
+	// }
+	//
+	// // Create text
+	// StringBuilder bui = new StringBuilder();
+	// bui.append(channelLabel);
+	// for (MessageParser.MessageElement el : els) {
+	// switch (el.getType()) {
+	// case LINK:
+	// bui.append(el.getValue());
+	// default:
+	// bui.append(el.getValue());
+	// }
+	// }
+	// l.setText(bui.toString());
+	// return l;
+	// }
 
-	private ChatLabel createMessageLabel(int index, ChatMessage cm) {
-		MessageParser mp = new MessageParser();
-		mp.parse(cm.getMsg());
-		List<MessageParser.MessageElement> els = mp.getElements();
+	// private ChatLabel XXcreateMessageLabel(int index, ChatMessage cm) {
+	// String s = cm.getMsg();
+	// ChatLabel l = new ChatLabel(screen, getUID() + ":Label" + index, cm);
+	// l.setFontColor(getColorForCommand(cm.getChannel().getCommand()));
+	// l.setFontSize(chatFontSize);
+	// l.setFont(screen.getStyle("ChatBox").getString("defaultFont"));
+	// String channelLabel = "";
+	// final ChannelType channelType = (ChannelType) cm.channel.getCommand();
+	// if (!channelType.isChat()) {
+	// if (showChannelLabels) {
+	// channelLabel = "[" + cm.getChannel().getName() + "]:";
+	// }
+	// } else {
+	// channelLabel = cm.sender == null ? (yourName == null ? "You" : yourName)
+	// : cm.sender;
+	// if (s.startsWith("*") && s.endsWith("*")) {
+	// s = s.substring(1, s.length() - 1);
+	// channelLabel += " ";
+	// } else {
+	// if (channelType.hasSubChannel()) {
+	// channelLabel = cm.sender == null ? "You" : cm.sender;
+	// channelLabel += " tell";
+	// if (cm.recipient == null) {
+	// channelLabel += "s you";
+	// } else {
+	// channelLabel += " " + cm.recipient;
+	// }
+	// channelLabel += ":";
+	// } else {
+	// channelLabel += " says:";
+	// }
+	// }
+	// }
+	// l.setText(channelLabel + s);
+	// return l;
+	// }
 
-		ChatLabel l = new ChatLabel(screen, getUID() + ":Label" + index, cm);
-		l.setFontColor(getColorForCommand(cm.getChannel().getCommand()));
-		System.err.println("setting fnt: " + chatFont + " / " + chatFontSize);
-		l.setFont(chatFont);
-		l.setFontSize(chatFontSize);
-		String channelLabel = "";
-		final ChannelType channelType = (ChannelType) cm.channel.getCommand();
-		if (!channelType.isChat()) {
-			if (showChannelLabels) {
-				channelLabel = "[" + cm.getChannel().getName() + "]:";
-			}
-		} else {
-			channelLabel = cm.sender == null ? (yourName == null ? "You" : yourName) : cm.sender;
-			if (mp.isAct()) {
-				l.setFont(chatBoldFont);
-				channelLabel += " ";
-			} else {
-				if (channelType.hasSubChannel()) {
-					channelLabel = cm.sender == null ? "You" : cm.sender;
-					channelLabel += " tell";
-					if (cm.recipient == null) {
-						channelLabel += "s you";
-					} else {
-						channelLabel += " " + cm.recipient;
-					}
-					channelLabel += ":";
-				} else {
-					channelLabel += " says:";
-				}
-			}
-		}
-
-		// Create text
-		StringBuilder bui = new StringBuilder();
-		bui.append(channelLabel);
-		for (MessageParser.MessageElement el : els) {
-			switch (el.getType()) {
-			case LINK:
-				bui.append(el.getValue());
-			default:
-				bui.append(el.getValue());
-			}
-		}
-		l.setText(bui.toString());
-		return l;
-	}
-
-	private ChatLabel XXcreateMessageLabel(int index, ChatMessage cm) {
-		String s = cm.getMsg();
-		ChatLabel l = new ChatLabel(screen, getUID() + ":Label" + index, cm);
-		l.setFontColor(getColorForCommand(cm.getChannel().getCommand()));
-		l.setFontSize(chatFontSize);
-		l.setFont(screen.getStyle("ChatBox").getString("defaultFont"));
-		String channelLabel = "";
-		final ChannelType channelType = (ChannelType) cm.channel.getCommand();
-		if (!channelType.isChat()) {
-			if (showChannelLabels) {
-				channelLabel = "[" + cm.getChannel().getName() + "]:";
-			}
-		} else {
-			channelLabel = cm.sender == null ? (yourName == null ? "You" : yourName) : cm.sender;
-			if (s.startsWith("*") && s.endsWith("*")) {
-				s = s.substring(1, s.length() - 1);
-				l.setFont(screen.getStyle("ChatBox").getString("strongFont"));
-				channelLabel += " ";
-			} else {
-				if (channelType.hasSubChannel()) {
-					channelLabel = cm.sender == null ? "You" : cm.sender;
-					channelLabel += " tell";
-					if (cm.recipient == null) {
-						channelLabel += "s you";
-					} else {
-						channelLabel += " " + cm.recipient;
-					}
-					channelLabel += ":";
-				} else {
-					channelLabel += " says:";
-				}
-			}
-		}
-		l.setText(channelLabel + s);
-		return l;
-	}
-
-	public TextField getChatInput() {
+	public TextArea getChatInput() {
 		return this.tfChatInput;
 	}
 
@@ -751,18 +678,15 @@ public abstract class XChatBox extends Element {
 	}
 
 	public void focusInput() {
-		System.err.println("FOCUS!");
-		screen.setTabFocusElement(tfChatInput);
-		screen.setKeyboardElement(tfChatInput);
+		tfChatInput.focus();
 	}
 
 	public void unfocusInput() {
-		System.err.println("Unfocussing");
-		screen.resetTabFocusElement();
+		tfChatInput.defocus();
 	}
 
 	public boolean isInputFocussed() {
-		return inputFocussed;
+		return tfChatInput.isHovering();
 	}
 
 	public void setInputText(String inputText) {

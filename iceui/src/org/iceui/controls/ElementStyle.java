@@ -1,140 +1,142 @@
 package org.iceui.controls;
 
-import com.jme3.font.BitmapFont;
-import com.jme3.font.LineWrapMode;
-import com.jme3.math.Vector2f;
-
 import icetone.controls.buttons.Button;
+import icetone.core.BaseElement;
 import icetone.core.Element;
-import icetone.core.ElementManager;
-import icetone.core.Screen;
-import icetone.core.layout.LUtil;
+import icetone.core.layout.Border;
 
+/**
+ * Helpers to add common styles to elements (as defined in the 'UI' theme
+ * extensions).
+ */
 public class ElementStyle {
 
-    public static Element styleElement(ElementManager screen, String styleName, Element element) {
-        element.setFontSize(screen.getStyle(styleName).getFloat("fontSize"));
-        element.setFontColor(screen.getStyle(styleName).getColorRGBA("fontColor"));
-        element.setTextVAlign(BitmapFont.VAlign.valueOf(screen.getStyle(styleName).getString("textVAlign")));
-        element.setTextAlign(BitmapFont.Align.valueOf(screen.getStyle(styleName).getString("textAlign")));
-        element.setTextWrap(LineWrapMode.valueOf(screen.getStyle(styleName).getString("textWrap")));
-        return element;
-    }
+	public static Element altColor(Element label) {
+		normalColor(label);
+		label.addStyleClass("color-alt");
+		return label;
+	}
 
-    public static Element altColor(ElementManager screen, Element label) {
-        label.setFontColor(screen.getStyle("Common").getColorRGBA("altColor"));
-        return label;
-    }
+	public static Element negativeColor(Element label) {
+		normalColor(label);
+		label.addStyleClass("color-negative");
+		return label;
+	}
 
-    public static Element successColor(ElementManager screen, Element label) {
-        label.setFontColor(screen.getStyle("Common").getColorRGBA("positiveColor"));
-        return label;
-    }
+	public static Element positiveColor(Element label) {
+		normalColor(label);
+		label.addStyleClass("color-postive");
+		return label;
+	}
 
-    public static Element errorColor(ElementManager screen, Element label) {
-        label.setFontColor(screen.getStyle("Common").getColorRGBA("errorColor"));
-        return label;
-    }
+	public static Element successColor(Element label) {
+		normalColor(label);
+		label.addStyleClass("color-success");
+		return label;
+	}
 
-    public static Element normalColor(ElementManager screen, Element label) {
-        label.setFontColor(screen.getStyle("Common").getColorRGBA("fontColor"));
-        return label;
-    }
+	public static Element errorColor(Element label) {
+		normalColor(label);
+		label.addStyleClass("color-error");
+		return label;
+	}
 
-    public static Element tiny(ElementManager screen, Element label) {
-        label.setFont(screen.getStyle("Font").getString("tinyFont"));
-        label.setFontSize(screen.getStyle("Common").getFloat("tinyFontSize"));
-        return label;
-    }
+	public static Element warningColor(Element label) {
+		normalColor(label);
+		label.addStyleClass("color-warning");
+		return label;
+	}
 
-    public static Element mediumOutline(ElementManager screen, Element label) {
-        label.setFont(screen.getStyle("Font").getString("mediumOutlineFont"));
-        label.setFontSize(screen.getStyle("Common").getFloat("mediumFontSize"));
-        return label;
-    }
+	public static Element normalColor(Element label) {
+		return label.removeStyleClass("color-alt").removeStyleClass("color-positive").removeStyleClass("color-error")
+				.removeStyleClass("color-warning").removeStyleClass("color-negative")
+				.removeStyleClass("color-positive");
+	}
 
-    public static Element medium(ElementManager screen, Element label, boolean bold, boolean italic) {
-        if (bold) {
-            if (italic) {
-                label.setFont(screen.getStyle("Font").getString("mediumStrongItalicFont"));
-            } else {
-                label.setFont(screen.getStyle("Font").getString("mediumStrongFont"));
-            }
-        } else {
-            if (italic) {
-                label.setFont(screen.getStyle("Font").getString("mediumItalicFont"));
-            } else {
-                label.setFont(screen.getStyle("Font").getString("mediumFont"));
-            }
-        }
-        label.setFontSize(screen.getStyle("Common").getFloat("mediumFontSize"));
-        return label;
-    }
-    
-    public static Element medium(Element label) {
-    	return medium(label.getScreen(), label);
-    }
+	public static Element tiny(Element label) {
+		label.addStyleClass("fnt-tiny");
+		return label;
+	}
 
-    public static Element medium(ElementManager screen, Element label) {
-        medium(screen, label, false, false);
-        return label;
-    }
+	public static Element mediumOutline(Element label) {
+		label.addStyleClass("fnt-medium-outline");
+		return label;
+	}
 
-    public static Element normal(ElementManager screen, Element label, boolean bold, boolean italic) {
-        return normal(screen, label, bold, italic, false);
-    }
+	public static Element medium(Element label, boolean bold, boolean italic) {
+		if (bold) {
+			if (italic) {
+				label.addStyleClass("fnt-medium-strong-italic");
+			} else {
+				label.addStyleClass("fnt-medium-strong");
+			}
+		} else {
+			if (italic) {
+				label.addStyleClass("fnt-medium-italic");
+			} else {
+				label.addStyleClass("fnt-medium");
+			}
+		}
+		return label;
+	}
 
-    public static Element normal(ElementManager screen, Element label, boolean bold, boolean italic, boolean outline) {
-        if (outline) {
-            label.setFont(screen.getStyle("Font").getString("defaultOutlineFont"));
-        } else {
-            if (bold) {
-                if (italic) {
-                    label.setFont(screen.getStyle("Font").getString("strongItalicFont"));
-                } else {
-                    label.setFont(screen.getStyle("Font").getString("strongFont"));
-                }
-            } else {
-                if (italic) {
-                    label.setFont(screen.getStyle("Font").getString("italicFont"));
-                } else {
-                    label.setFont(screen.getStyle("Font").getString("defaultFont"));
-                }
-            }
-        }
+	public static Element medium(Element label) {
+		medium(label, false, false);
+		return label;
+	}
 
-        label.setFontSize(screen.getStyle("Common").getFloat("fontSize"));
-        return label;
-    }
+	public static Element normal(Element label, boolean bold, boolean italic) {
+		return normal(label, bold, italic, false);
+	}
 
-    public static Element large(ElementManager screen, Element label) {
-        label.setFont(screen.getStyle("Font").getString("largeFont"));
-        label.setFontSize(screen.getStyle("Common").getFloat("largeFontSize"));
-        return label;
-    }
+	public static Element normal(Element label, boolean bold, boolean italic, boolean outline) {
+		if (outline) {
+			label.addStyleClass("fnt-default-outline");
+		} else {
+			if (bold) {
+				if (italic) {
+					label.addStyleClass("fnt-strong-italic");
+				} else {
+					label.addStyleClass("fnt-strong");
+				}
+			} else {
+				if (italic) {
+					label.addStyleClass("fnt-italic");
+				} else {
+					label.addStyleClass("fnt-default");
+				}
+			}
+		}
+		return label;
+	}
 
-    public static Element small(ElementManager screen, Element label, boolean bold, boolean italic) {
-        label.setFont(screen.getStyle("Font").getString("smallFont"));
-        label.setFontSize(screen.getStyle("Common").getFloat("smallFontSize"));
-        return label;
-    }
+	public static Element large(Element label) {
+		label.addStyleClass("fnt-large");
+		return label;
+	}
 
-    public static Element small(Element label) {
-    	return small(label.getScreen(), label);
-    }
+	public static BaseElement normal(Element label) {
+		normal(label, false, false);
+		return label;
+	}
 
-    public static Element small(ElementManager screen, Element label) {
-        small(screen, label, false, false);
-        return label;
-    }
-
-    public static Button arrowButton(Screen screen, Button button, String direction) {
-        Vector2f sz = screen.getStyle("Common").getVector2f("arrowSize");
-        if(button.getButtonIcon() != null) {
-            button.removeChild(button.getButtonIcon());
-        }
-        LUtil.setInaccessibleField(null, "icon", button, Button.class);
-        button.setButtonIcon(sz.x, sz.y, screen.getStyle("Common").getString("arrow" + direction));
-        return button;
-    }
+	public static Button arrowButton(Button button, Border direction) {
+		switch (direction) {
+		case NORTH:
+			button.getButtonIcon().addStyleClass("button-icon icon-up");
+			break;
+		case SOUTH:
+			button.getButtonIcon().addStyleClass("button-icon icon-down");
+			break;
+		case WEST:
+			button.getButtonIcon().addStyleClass("button-icon icon-back");
+			break;
+		case EAST:
+			button.getButtonIcon().addStyleClass("button-icon icon-forward");
+			break;
+		default:
+			break;
+		}
+		return button;
+	}
 }

@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.icelib.Icelib;
 import org.icelib.Item;
 import org.icelib.ItemType;
 import org.icelib.Persona;
@@ -209,6 +210,8 @@ public class InventoryAndEquipment {
 		client.addListener(listener = new ClientListenerAdapter() {
 			@Override
 			public void inventoryUpdate() {
+				Icelib.removeMe("Got inventory update event");
+				Icelib.dumpTrace();
 				new Thread("InventoryUpdate") {
 					@Override
 					public void run() {

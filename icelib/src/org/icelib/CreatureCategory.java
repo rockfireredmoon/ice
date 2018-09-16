@@ -1,38 +1,13 @@
-/**
- * Copyright (C) 2014-2016 Emerald Icemoon (emerald.icemoon@gmail.com)
- * 
- * License: http://www.gnu.org/licenses/gpl.html GPL version 3 or higher
- */
 package org.icelib;
 
-import java.util.logging.Logger;
+import org.icelib.Color;
+import org.icelib.RGB;
 
 public enum CreatureCategory {
-
-	ANIMAL("Animal", "yellow"), DEMON("Demon", "red"), DIVINE("Divine", "white"), DRAGONKIN("Dragonkin", "purple"), ELEMENTAL(
-			"Elemental", "blue"), INANIMATE("Inanimate",
-					"orange"), MAGICAL("Magical", "cyan"), MORTAL("Mortal", "green"), UNLIVING("Unliving", "grey");
-	private static final Logger LOG = Logger.getLogger(CreatureCategory.class.getName());
-	private String code;
-	private String color;
-
-	private CreatureCategory(String code, String color) {
-		this.code = code;
-		this.color = color;
-	}
-
-	public String getColor() {
-		return color;
-	}
-
-	public String getCode() {
-		return code;
-	}
-
-	@Override
-	public String toString() {
-		return Icelib.toEnglish(name(), true);
-	}
+	PLAYER("Player", Color.DARK_GREEN), ANIMAL("Animal", Color.YELLOW), DEMON("Demon", Color.RED), DIVINE("Divine",
+			Color.WHITE), DRAGONKIN("Dragonkin", Color.MAGENTA), ELEMENTAL("Elemental",
+					Color.BLUE), INANIMATE("Inanimate", Color.ORANGE), MAGICAL("Magical",
+							Color.CYAN), MORTAL("Mortal", Color.GREEN), UNLIVING("Unliving", Color.GREY);
 
 	public static CreatureCategory fromCode(String code) {
 		for (CreatureCategory type : values()) {
@@ -40,11 +15,31 @@ public enum CreatureCategory {
 				return type;
 			}
 		}
-		LOG.info(String.format("TODO: Unhandled CreatureCategory code %s", code));
-		return null;
+		throw new IllegalArgumentException("Invalid creature category.");
+	}
+
+	private String code;
+	private RGB color;
+
+	private CreatureCategory(String code, RGB color) {
+		this.code = code;
+		this.color = color;
+	}
+
+	public String getCode() {
+		return code;
+	}
+
+	public RGB getColor() {
+		return color;
 	}
 
 	public String getIcon() {
 		return "Icon-" + code + "-Portrait.png";
+	}
+
+	@Override
+	public String toString() {
+		return code;
 	}
 }

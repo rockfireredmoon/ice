@@ -1,3 +1,35 @@
+/**
+ * ICETONE - A GUI Library for JME3 based on a heavily modified version of 
+ * Tonegod's 'Tonegodgui'.  
+ * 
+ * Copyright (c) 2013, t0neg0d
+ * Copyright (c) 2016, Emerald Icemoon
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution. 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * The views and conclusions contained in the software and documentation are those
+ * of the authors and should not be interpreted as representing official policies, 
+ * either expressed or implied, of the FreeBSD Project.
+ */
 package org.iceui.controls;
 
 import java.util.ArrayList;
@@ -5,149 +37,115 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.jme3.input.KeyInput;
-import com.jme3.input.event.KeyInputEvent;
 import com.jme3.input.event.MouseButtonEvent;
-import com.jme3.math.Vector2f;
-import com.jme3.math.Vector4f;
 
+import icetone.controls.buttons.SelectableItem;
 import icetone.controls.scrolling.ScrollPanel;
-import icetone.core.Element;
-import icetone.core.ElementManager;
-import icetone.core.Screen;
-import icetone.core.layout.LUtil;
+import icetone.core.BaseElement;
+import icetone.core.BaseScreen;
+import icetone.core.Orientation;
+import icetone.core.BaseScreen;
+import icetone.core.event.MouseUIButtonEvent;
 import icetone.core.layout.WrappingLayout;
-import icetone.core.utils.UIDUtil;
-import icetone.listeners.KeyboardListener;
-import icetone.listeners.MouseButtonListener;
-import icetone.listeners.TabFocusListener;
 
 /**
  *
  * @author t0neg0d
+ * @author rockfire
  */
-public class SelectArea extends ScrollPanel implements MouseButtonListener, TabFocusListener, KeyboardListener {
+public class SelectArea extends ScrollPanel {
 	private List<SelectableItem> listItems = new ArrayList<>();
 	private List<Integer> selectedIndexes = new ArrayList<>();
 	private boolean isMultiselect = false;
 	private boolean shift = false, ctrl = false;
 
 	/**
-	 * Creates a new instance of the SelectList control
-	 *
-	 * @param screen
-	 *            The screen control the Element is to be added to
-	 * @param position
-	 *            A Vector2f containing the x/y position of the Element
+	 * Creates a new instance of the SelectArea control
 	 */
 	public SelectArea() {
-		this(Screen.get());
+		this(BaseScreen.get());
 	}
 
 	/**
-	 * Creates a new instance of the SelectList control
+	 * Creates a new instance of the SelectArea control
 	 *
 	 * @param screen
 	 *            The screen control the Element is to be added to
-	 * @param position
-	 *            A Vector2f containing the x/y position of the Element
 	 */
-	public SelectArea(ElementManager screen) {
-		this(screen, UIDUtil.getUID(), LUtil.LAYOUT_SIZE, screen.getStyle("SelectArea").getVector4f("resizeBorders"),
-				screen.getStyle("SelectArea").getString("defaultImg"));
-	}
+	public SelectArea(BaseScreen screen) {
+		super(screen);
 
-	/**
-	 * Creates a new instance of the SelectList control
-	 *
-	 * @param screen
-	 *            The screen control the Element is to be added to
-	 * @param position
-	 *            A Vector2f containing the x/y position of the Element
-	 * @param dimensions
-	 *            A Vector2f containing the width/height dimensions of the
-	 *            Element
-	 */
-	public SelectArea(ElementManager screen, Vector2f dimensions) {
-		this(screen, UIDUtil.getUID(), dimensions, screen.getStyle("SelectArea").getVector4f("resizeBorders"),
-				screen.getStyle("SelectArea").getString("defaultImg"));
-	}
-
-	/**
-	 * Creates a new instance of the SelectList control
-	 *
-	 * @param screen
-	 *            The screen control the Element is to be added to
-	 * @param dimensions
-	 *            A Vector2f containing the width/height dimensions of the
-	 *            Element
-	 * @param resizeBorders
-	 *            A Vector4f containg the border information used when resizing
-	 *            the default image (x = N, y = W, z = E, w = S)
-	 * @param defaultImg
-	 *            The default image to use for the Menu
-	 */
-	public SelectArea(ElementManager screen, Vector2f dimensions, Vector4f resizeBorders, String defaultImg) {
-		this(screen, UIDUtil.getUID(), dimensions, resizeBorders, defaultImg);
-	}
-
-	/**
-	 * Creates a new instance of the SelectList control
-	 *
-	 * @param screen
-	 *            The screen control the Element is to be added to
-	 * @param UID
-	 *            A unique String identifier for the Element
-	 */
-	public SelectArea(ElementManager screen, String UID) {
-		this(screen, UID, LUtil.LAYOUT_SIZE, screen.getStyle("SelectArea").getVector4f("resizeBorders"),
-				screen.getStyle("SelectArea").getString("defaultImg"));
-	}
-
-	/**
-	 * Creates a new instance of the SelectList control
-	 *
-	 * @param screen
-	 *            The screen control the Element is to be added to
-	 * @param UID
-	 *            A unique String identifier for the Element
-	 * @param dimensions
-	 *            A Vector2f containing the width/height dimensions of the
-	 *            Element
-	 */
-	public SelectArea(ElementManager screen, String UID, Vector2f dimensions) {
-		this(screen, UID, dimensions, screen.getStyle("SelectArea").getVector4f("resizeBorders"),
-				screen.getStyle("SelectArea").getString("defaultImg"));
-	}
-
-	/**
-	 * Creates a new instance of the SelectList control
-	 *
-	 * @param screen
-	 *            The screen control the Element is to be added to
-	 * @param UID
-	 *            A unique String identifier for the Element
-	 * @param dimensions
-	 *            A Vector2f containing the width/height dimensions of the
-	 *            Element
-	 * @param resizeBorders
-	 *            A Vector4f containg the border information used when resizing
-	 *            the default image (x = N, y = W, z = E, w = S)
-	 * @param defaultImg
-	 *            The default image to use for the Slider's track
-	 */
-	public SelectArea(ElementManager screen, String UID, Vector2f dimensions, Vector4f resizeBorders, String defaultImg) {
-		super(screen, UID, Vector2f.ZERO, dimensions, resizeBorders, defaultImg);
-		setTextPadding(screen.getStyle("SelectArea").getVector4f("textPadding"));
-		setTextClipPadding(screen.getStyle("SelectArea").getVector4f("textPadding"));
-		scrollableArea.setTextPadding(screen.getStyle("SelectArea").getVector4f("scrollPadding"));
-		scrollableArea.setTextClipPadding(screen.getStyle("SelectArea").getVector4f("scrollPadding"));
-		setHorizontalScrollBarMode(ScrollBarMode.Never);
 		((WrappingLayout) getScrollContentLayout()).setOrientation(Orientation.HORIZONTAL);
 		((WrappingLayout) getScrollContentLayout()).setEqualSizeCells(false);
 		((WrappingLayout) getScrollContentLayout()).setWidth(1);
 		((WrappingLayout) getScrollContentLayout()).setFill(true);
-		getScrollBounds().setIgnoreMouseButtons(true);
-		getScrollableArea().setIgnoreMouse(true);
+
+		onMouseReleased(evt -> {
+			float y = evt.getY() - scrollableArea.getAbsoluteY() + getAllPadding().z;
+			int idx = yToIndex(y);
+			if (isMultiselect) {
+				if (shift || ctrl) {
+					if (!selectedIndexes.contains(idx)) {
+						addSelectedIndex(idx);
+					} else {
+						removeSelectedIndex(idx);
+					}
+				} else {
+					setSelectedIndex(idx);
+				}
+			} else {
+				if (idx >= 0 && idx < listItems.size()) {
+					setSelectedIndex(idx);
+				} else {
+					clearSelection();
+				}
+			}
+			evt.setConsumed();
+		});
+
+		onMouseReleased(evt -> {
+			float y = evt.getY() - scrollableArea.getAbsoluteY() + getAllPadding().z;
+			int idx = yToIndex(y);
+			if (isMultiselect && idx > -1) {
+				if (shift || ctrl) {
+					if (!selectedIndexes.contains(idx)) {
+						addSelectedIndex(idx);
+						onRightClickSelection(evt);
+					} else {
+						removeSelectedIndex(idx);
+					}
+				} else {
+					setSelectedIndex(idx);
+					onRightClickSelection(evt);
+				}
+			} else {
+				if (idx >= 0 && idx < listItems.size()) {
+					setSelectedIndex(idx);
+					onRightClickSelection(evt);
+				} else {
+					clearSelection();
+				}
+			}
+			evt.setConsumed();
+		}, MouseUIButtonEvent.RIGHT);
+
+		onKeyboardReleased(evt -> {
+
+			if (evt.getKeyCode() == KeyInput.KEY_LCONTROL || evt.getKeyCode() == KeyInput.KEY_RCONTROL) {
+				ctrl = false;
+			} else if (evt.getKeyCode() == KeyInput.KEY_LSHIFT || evt.getKeyCode() == KeyInput.KEY_RSHIFT) {
+				shift = false;
+			}
+		});
+		onKeyboardPressed(evt -> {
+
+			if (evt.getKeyCode() == KeyInput.KEY_LCONTROL || evt.getKeyCode() == KeyInput.KEY_RCONTROL) {
+				ctrl = true;
+			} else if (evt.getKeyCode() == KeyInput.KEY_LSHIFT || evt.getKeyCode() == KeyInput.KEY_RSHIFT) {
+				shift = true;
+			}
+		});
+
 	}
 
 	public SelectableItem getSelectedItem() {
@@ -169,26 +167,11 @@ public class SelectArea extends ScrollPanel implements MouseButtonListener, TabF
 		return this.isMultiselect;
 	}
 
-	/**
-	 * Adds a ListItem to the Menu
-	 *
-	 * @param caption
-	 *            The display caption of the MenuItem
-	 * @param value
-	 *            The value to associate with the MenuItem
-	 * 
-	 * @deprecated use {@link #addScrollableContent(Element)} and variants.
-	 */
-	@Deprecated
-	public void addListItem(SelectableItem listItem) {
-		addScrollableContent(listItem);
-	}
-
 	@Override
-	public void addScrollableContent(Element el, boolean reshape, Object constraints) {
+	public ScrollPanel addScrollableContent(BaseElement el, Object constraints) {
 		if (el instanceof SelectableItem)
 			this.listItems.add((SelectableItem) el);
-		super.addScrollableContent(el, reshape, constraints);
+		return super.addScrollableContent(el, constraints);
 	}
 
 	/**
@@ -235,7 +218,7 @@ public class SelectArea extends ScrollPanel implements MouseButtonListener, TabF
 		if (!listItems.isEmpty()) {
 			int index = -1;
 			int count = 0;
-			for (Element mi : listItems) {
+			for (BaseElement mi : listItems) {
 				if (mi == value) {
 					index = count;
 					break;
@@ -263,10 +246,11 @@ public class SelectArea extends ScrollPanel implements MouseButtonListener, TabF
 	}
 
 	public void removeAllListItems() {
+		getScrollableArea().invalidate();
 		for (SelectableItem item : listItems) {
-			getScrollableArea().removeChild(item, false);
+			getScrollableArea().removeElement(item);
 		}
-		layoutChildren();
+		getScrollableArea().validate();
 		this.listItems = new ArrayList<>();
 		this.selectedIndexes = new ArrayList<>();
 	}
@@ -279,11 +263,11 @@ public class SelectArea extends ScrollPanel implements MouseButtonListener, TabF
 	 */
 	public void setSelectedIndex(Integer index) {
 		for (int i : selectedIndexes) {
-			listItems.get(i).setSelected(false);
+			listItems.get(i).setIsToggled(false);
 		}
 		selectedIndexes = new ArrayList<>();
 		selectedIndexes.add(index);
-		listItems.get(index).setSelected(true);
+		listItems.get(index).setIsToggled(true);
 		onChange();
 	}
 
@@ -296,14 +280,14 @@ public class SelectArea extends ScrollPanel implements MouseButtonListener, TabF
 		List<Integer> selectionList = Arrays.asList(indexes);
 		for (int i : new ArrayList<Integer>(selectedIndexes)) {
 			if (!selectionList.contains(i)) {
-				listItems.get(i).setSelected(false);
+				listItems.get(i).setIsToggled(false);
 				selectedIndexes.remove(i);
 			}
 		}
 		for (int i = 0; i < indexes.length; i++) {
 			if (!selectedIndexes.contains(indexes[i])) {
 				selectedIndexes.add(indexes[i]);
-				listItems.get(i).setSelected(true);
+				listItems.get(i).setIsToggled(true);
 			}
 		}
 		onChange();
@@ -315,7 +299,7 @@ public class SelectArea extends ScrollPanel implements MouseButtonListener, TabF
 	public void clearSelection() {
 		if (selectedIndexes.size() > 0) {
 			for (int i : selectedIndexes) {
-				listItems.get(i).setSelected(false);
+				listItems.get(i).setIsToggled(false);
 			}
 			selectedIndexes.clear();
 			onChange();
@@ -330,7 +314,7 @@ public class SelectArea extends ScrollPanel implements MouseButtonListener, TabF
 	 */
 	public void addSelectedIndex(Integer index) {
 		if (!selectedIndexes.contains(index)) {
-			listItems.get(index).setSelected(true);
+			listItems.get(index).setIsToggled(true);
 			selectedIndexes.add(index);
 			onChange();
 		}
@@ -344,7 +328,7 @@ public class SelectArea extends ScrollPanel implements MouseButtonListener, TabF
 	 */
 	public void removeSelectedIndex(Integer index) {
 		if (selectedIndexes.contains(index)) {
-			listItems.get(index).setSelected(false);
+			listItems.get(index).setIsToggled(false);
 			selectedIndexes.remove(index);
 			onChange();
 		}
@@ -410,105 +394,14 @@ public class SelectArea extends ScrollPanel implements MouseButtonListener, TabF
 	}
 
 	private int yToIndex(float y) {
-		System.out.println("y to i " + y);
 		for (int i = 0; i < listItems.size(); i++) {
 			SelectableItem item = listItems.get(i);
-			float it = LUtil.getY(item);
+			float it = item.getY();
 			if (y >= it && y <= it + item.getHeight()) {
 				return i;
 			}
 		}
 		return -1;
-	}
-
-	@Override
-	public void onMouseLeftPressed(MouseButtonEvent evt) {
-		evt.setConsumed();
-	}
-
-	@Override
-	public void onMouseLeftReleased(MouseButtonEvent evt) {
-		float y = evt.getY() - LUtil.getAbsoluteY(scrollableArea) + textPadding.z;
-		int idx = yToIndex(y);
-		if (isMultiselect) {
-			if (shift || ctrl) {
-				if (!selectedIndexes.contains(idx)) {
-					addSelectedIndex(idx);
-				} else {
-					removeSelectedIndex(idx);
-				}
-			} else {
-				setSelectedIndex(idx);
-			}
-		} else {
-			if (idx >= 0 && idx < listItems.size()) {
-				setSelectedIndex(idx);
-			} else {
-				clearSelection();
-			}
-		}
-		evt.setConsumed();
-	}
-
-	@Override
-	public void onMouseRightPressed(MouseButtonEvent evt) {
-
-		evt.setConsumed();
-	}
-
-	@Override
-	public void onMouseRightReleased(MouseButtonEvent evt) {
-		float y = evt.getY() - LUtil.getAbsoluteY(scrollableArea) + textPadding.z;
-		int idx = yToIndex(y);
-		if (isMultiselect && idx > -1) {
-			if (shift || ctrl) {
-				if (!selectedIndexes.contains(idx)) {
-					addSelectedIndex(idx);
-					onRightClickSelection(evt);
-				} else {
-					removeSelectedIndex(idx);
-				}
-			} else {
-				setSelectedIndex(idx);
-				onRightClickSelection(evt);
-			}
-		} else {
-			if (idx >= 0 && idx < listItems.size()) {
-				setSelectedIndex(idx);
-				onRightClickSelection(evt);
-			} else {
-				clearSelection();
-			}
-		}
-		evt.setConsumed();
-	}
-
-	@Override
-	public void onKeyPress(KeyInputEvent evt) {
-		if (evt.getKeyCode() == KeyInput.KEY_LCONTROL || evt.getKeyCode() == KeyInput.KEY_RCONTROL) {
-			ctrl = true;
-		} else if (evt.getKeyCode() == KeyInput.KEY_LSHIFT || evt.getKeyCode() == KeyInput.KEY_RSHIFT) {
-			shift = true;
-		}
-	}
-
-	@Override
-	public void onKeyRelease(KeyInputEvent evt) {
-		if (evt.getKeyCode() == KeyInput.KEY_LCONTROL || evt.getKeyCode() == KeyInput.KEY_RCONTROL) {
-			ctrl = false;
-		} else if (evt.getKeyCode() == KeyInput.KEY_LSHIFT || evt.getKeyCode() == KeyInput.KEY_RSHIFT) {
-			shift = false;
-		}
-	}
-
-	@Override
-	public void setTabFocus() {
-		screen.setKeyboardElement(this);
-	}
-
-	@Override
-	public void resetTabFocus() {
-		screen.setKeyboardElement(null);
 	}
 
 	public void onChange() {

@@ -15,6 +15,43 @@
 		<testSourceDirectory>test</testSourceDirectory>
 		<outputDirectory>target/classes</outputDirectory>
 		<testOutputDirectory>target/test-classes</testOutputDirectory>
+		
+		
+		<resources>
+			<resource>
+				<targetPath>.</targetPath>
+				<directory>assets</directory>
+			</resource>
+			<resource>
+				<targetPath>.</targetPath>
+				<directory>src</directory>
+				<includes>
+					<include>META-INF/*.cfg</include>
+				</includes>
+			</resource>
+		</resources>
+		<plugins>
+			<plugin>
+				<artifactId>jME3-Iceloader-Maven-plugin</artifactId>
+				<groupId>jME3-ext</groupId>
+				<version>${iceloader.version}</version>
+				<executions>
+					<execution>
+						<id>process-assets</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>index</goal>
+						</goals>
+						<configuration>
+							<excludes>
+								<exclude>**/*.class</exclude>
+							</excludes>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+		
 	</build>
 	<dependencies>
 		<dependency>
@@ -24,37 +61,26 @@
 		</dependency>
 		<dependency>
 			<groupId>org.icemoon</groupId>
-			<artifactId>icetone</artifactId>
+			<artifactId>icetone-core</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.icemoon</groupId>
+			<artifactId>icetone-extras</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.icemoon</groupId>
+			<artifactId>icetone-theme-default</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		
 		<!-- The core library -->
 		<dependency>
-			<groupId>com.jme3</groupId>
+			<groupId>org.jmonkeyengine</groupId>
 			<artifactId>jme3-core</artifactId>
 			<version>${jmonkey.version}</version>
 		</dependency>
 
-		<!-- Third party libs -->
-		<!-- <dependency>
-			<groupId>com.jme3</groupId>
-			<artifactId>jinput</artifactId>
-			<version>${jmonkey.version}</version>
-		</dependency> -->
-		<!-- <dependency>
-			<groupId>tonegod</groupId>
-			<artifactId>icetone</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>tonegod</groupId>
-			<artifactId>tonegodguilayout</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>com.miglayout</groupId>
-			<artifactId>miglayout-core</artifactId>
-			<version>4.1</version>
-		</dependency> -->
 	</dependencies>
 </project>

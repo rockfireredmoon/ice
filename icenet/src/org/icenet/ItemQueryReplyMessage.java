@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import org.icelib.EquipType;
+import org.icelib.Icelib;
 import org.icelib.Item.ArmourType;
 import org.icelib.Item.BindingType;
 import org.icelib.Item.WeaponType;
@@ -97,6 +98,7 @@ public class ItemQueryReplyMessage extends SimulatorMessage {
 
     public ItemQueryReplyMessage(Simulator.ProtocolState mode, Simulator sim, SimulatorMessage msg) {
         super(msg);
+        
         setValidForProtocol(mode);
         payload.rewind();
         id = readUnsignedInt();
@@ -104,6 +106,7 @@ public class ItemQueryReplyMessage extends SimulatorMessage {
 
         // ???
         name = readString();
+        Icelib.removeMe("Started reading %s %s", id, name);
         appearance = readString();
         String icons = readString();
         String[] iconArr = icons.split("\\|");
@@ -235,6 +238,7 @@ public class ItemQueryReplyMessage extends SimulatorMessage {
         	qualityLevel = readUnsignedByte();
         	minUseLevel = readUnsignedShort();
         }
+        Icelib.removeMe("Finiished reading %s %s", id, name);
     }
 
     public long getWeaponDamageMin() {

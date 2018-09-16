@@ -177,9 +177,6 @@ public class ObjectMapper<T> {
 						}
 					}
 
-					// if(camelCaseName.equals("Colors")) {
-					// System.out.println("BREAK!");
-					// }
 					if (val instanceof List) {
 						Method getter = findMethod("get" + camelCaseName, object.getClass(), null);
 						if (getter != null) {

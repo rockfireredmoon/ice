@@ -42,7 +42,11 @@ public class SetMapMessage extends SimulatorMessage {
 		// Terrain / Environment name
 		terrain = readString();
 		environment = readString();
-		mapName = readString();
+		
+		if(mask != 2) {
+			// Time update has no map name 
+			mapName = readString();
+		}
 
 	}
 
