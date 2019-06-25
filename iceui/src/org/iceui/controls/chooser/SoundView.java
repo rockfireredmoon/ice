@@ -5,7 +5,7 @@ import com.jme3.font.BitmapFont.Align;
 import icetone.controls.buttons.SelectableItem;
 import icetone.controls.menuing.Menu;
 import icetone.core.BaseScreen;
-import icetone.core.event.MouseUIButtonEvent;
+import icetone.core.event.mouse.MouseUIButtonEvent;
 import icetone.core.layout.WrappingLayout;
 import icetone.extras.chooser.AbstractButtonView;
 import icetone.extras.chooser.ChooserDialog;

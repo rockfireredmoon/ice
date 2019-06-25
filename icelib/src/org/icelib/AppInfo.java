@@ -76,7 +76,7 @@ public class AppInfo {
 			String pathToManifest = pathToThisClass.toString().substring(0, mark + 1);
 			pathToManifest = pathToManifest + "/META-INF/MANIFEST.MF";
 			LOG.info(String.format("Manifest should be at %s", pathToManifest));
-			Manifest manifest = new Manifest(new URL(pathToManifest).openStream());
+			Manifest manifest =   new Manifest(pathToManifest.startsWith("/") ? AppInfo.class.getResourceAsStream(pathToManifest): new URL(pathToManifest).openStream());
 			readManifest(manifest);
 		} catch (Exception ioe) {
 			LOG.log(Level.WARNING, "Could not locate manifest for application versioning.", ioe);

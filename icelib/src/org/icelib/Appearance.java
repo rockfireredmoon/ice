@@ -367,6 +367,14 @@ public class Appearance implements Serializable {
 	public void setName(Name name) {
 		this.name = name;
 	}
+	
+	public void removeSkinElement(String name) {
+		SquirrelTable root = ob;
+		SquirrelTable object = (SquirrelTable) root.get("sk");
+		if(object != null) {
+			object.remove(name);
+		}
+	}
 
 	public void addOrUpdateSkinElement(SkinElement element) {
 		SquirrelTable root = ob;

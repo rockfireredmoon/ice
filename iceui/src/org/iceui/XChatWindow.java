@@ -23,7 +23,8 @@ import icetone.controls.containers.TabControl.TabButton;
 import icetone.controls.menuing.Menu;
 import icetone.core.BaseElement;
 import icetone.core.BaseScreen;
-import icetone.core.event.MouseUIButtonEvent;
+import icetone.core.event.ElementEvent.Type;
+import icetone.core.event.mouse.MouseUIButtonEvent;
 import icetone.core.layout.ScreenLayoutConstraints;
 import icetone.core.layout.mig.MigLayout;
 import icetone.extras.util.ExtrasUtil;
@@ -35,7 +36,6 @@ import icetone.extras.windows.SaveType;
 public class XChatWindow extends PersistentPanel {
 
 	private static final Logger LOG = Logger.getLogger(XChatWindow.class.getName());
-	private String chatBoldFont;
 
 	public Object getChannels() {
 		throw new UnsupportedOperationException("Not supported yet."); // To
@@ -76,8 +76,6 @@ public class XChatWindow extends PersistentPanel {
 	private final TabControl tabs;
 	private final List<XChatBox> chatTabs = new ArrayList<XChatBox>();
 	private int sendKey = -1;
-	private float chatFontSize = -1;
-	private String chatFont = null;
 	private List<ChannelDefinition> channels = new ArrayList<ChannelDefinition>();
 	private String yourName;
 
@@ -134,9 +132,6 @@ public class XChatWindow extends PersistentPanel {
 
 	public XChatWindow(String configKey, BaseScreen screen, Preferences pref) {
 		super(screen, configKey, 0, VAlign.Bottom, Align.Left, null, SaveType.POSITION_AND_SIZE, pref);
-		chatFontSize = -1;
-		chatFont = null;
-		chatBoldFont = null;
 		setLayoutManager(new MigLayout(screen, "", "[grow, fill]", "[grow, fill]"));
 		setIgnoreMouse(false);
 		tabs = new XChatTabs(screen, getStyleId() + ":tabs");
@@ -146,6 +141,7 @@ public class XChatWindow extends PersistentPanel {
 		onMouseReleased(evt -> {
 			showChatTabMenu(evt.getX(), evt.getY());
 		}, MouseUIButtonEvent.RIGHT);
+		boundsSet = false;
 	}
 
 	public void receiveMsg(String sender, String recipient, ChannelType channel, String text) {
@@ -156,20 +152,6 @@ public class XChatWindow extends PersistentPanel {
 
 	public XChatBox getChatTab(int index) {
 		return chatTabs.get(index);
-	}
-
-	public void setChatFontSize(float chatFontSize) {
-		this.chatFontSize = chatFontSize;
-		for (XChatBox t : chatTabs) {
-			t.setFontSize(chatFontSize);
-		}
-	}
-
-	public void setChatFont(String chatFont) {
-		this.chatFont = chatFont;
-		for (XChatBox t : chatTabs) {
-			t.setFontFamily(chatFont);
-		}
 	}
 
 	public void setYourName(String yourName) {
@@ -229,12 +211,6 @@ public class XChatWindow extends PersistentPanel {
 		XChatBox tab = createTab(tabName);
 		for (ChannelDefinition c : channels) {
 			tab.addChatChannel(c);
-		}
-		if (chatFontSize != -1) {
-			tab.setFontSize(chatFontSize);
-		}
-		if (chatFont != null) {
-			tab.setFontFamily(chatFont);
 		}
 		if (sendKey != -1) {
 			tab.setSendKey(sendKey);
@@ -331,7 +307,7 @@ public class XChatWindow extends PersistentPanel {
 	}
 
 	private void newChatTab() {
-		InputBox fib = new InputBox(screen, Vector2f.ZERO, movable) {
+		InputBox fib = new InputBox(screen, Vector2f.ZERO, false) {
 			{
 				setStyleClass("large");
 			}
@@ -358,7 +334,7 @@ public class XChatWindow extends PersistentPanel {
 	}
 
 	private void renameChatTab() {
-		InputBox fib = new InputBox(screen, Vector2f.ZERO, movable) {
+		InputBox fib = new InputBox(screen, Vector2f.ZERO, false) {
 			{
 				setStyleClass("large");
 			}
@@ -378,7 +354,7 @@ public class XChatWindow extends PersistentPanel {
 		fib.setDestroyOnHide(true);
 		ElementStyle.warningColor(fib.getDragBar());
 		fib.setButtonOkText("Rename");
-		fib.setMsg(tabs.getTabTitle(tabs.getSelectedTabIndex()));
+		fib.setText(tabs.getTabTitle(tabs.getSelectedTabIndex()));
 		fib.setResizable(false);
 		fib.setMovable(false);
 		fib.setModal(true);
@@ -410,7 +386,7 @@ public class XChatWindow extends PersistentPanel {
 		ElementStyle.warningColor(dialog.getDragBar());
 		dialog.setWindowTitle("Delete Tab");
 		dialog.setButtonOkText("Delete Tab");
-		dialog.setMsg(
+		dialog.setText(
 				"Are you sure? This chat tab, it's content and all of it's filter settings will be removed permanently.");
 		dialog.setResizable(false);
 		dialog.setMovable(false);
@@ -419,21 +395,11 @@ public class XChatWindow extends PersistentPanel {
 	}
 
 	private void showChatTabMenu(float x, float y) {
-		Menu<TabMenuOption> subMenu = new Menu<TabMenuOption>(screen) {
-
-			@Override
-			public void controlHideHook() {
-				super.controlHideHook();
-				onHideTabContextMenu();
-
-			}
-
-			@Override
-			public void controlShowHook() {
-				super.controlShowHook();
-				onShowTabContextMenu();
-			}
-		};
+		Menu<TabMenuOption> subMenu = new Menu<TabMenuOption>(screen);
+		subMenu.onElementEvent(evt -> onShowTabContextMenu(), Type.SHOWN);
+		subMenu.onElementEvent(evt -> {
+			onHideTabContextMenu();
+		}, Type.HIDDEN);
 		subMenu.onChanged((evt) -> {
 			switch (evt.getNewValue().getValue()) {
 			case SAVE_TAB:
@@ -469,7 +435,4 @@ public class XChatWindow extends PersistentPanel {
 		// screen.updateZOrder(subMenu);
 	}
 
-	public String getChatFont() {
-		return chatFont;
-	}
 }

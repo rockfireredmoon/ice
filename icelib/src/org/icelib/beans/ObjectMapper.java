@@ -31,8 +31,7 @@ import org.apache.commons.collections4.Transformer;
  * If any custom type mapping is required, a {@link Transformer} should be
  * registered using {@link #addObjectConverter(Class, Class, Transformer)}.
  *
- * @param <T>
- *            type of object to map
+ * @param <T> type of object to map
  */
 public class ObjectMapper<T> {
 
@@ -99,29 +98,29 @@ public class ObjectMapper<T> {
 				Method m = findMethod(setterName, object.getClass(), null, val.getClass());
 				if (m == null) {
 					if (val instanceof Long) {
-						m = findMethod(setterName, object.getClass(), null, Double.class, Integer.class, Float.class, Short.class,
-								Byte.class, String.class, Boolean.class);
-					} else if (val instanceof Integer) {
-						m = findMethod(setterName, object.getClass(), null, Long.class, Double.class, Float.class, Short.class,
-								Byte.class, String.class, Boolean.class);
-					} else if (val instanceof Short) {
-						m = findMethod(setterName, object.getClass(), null, Integer.class, Long.class, Double.class, Float.class,
-								Byte.class, String.class, Boolean.class);
-					} else if (val instanceof Byte) {
-						m = findMethod(setterName, object.getClass(), null, Short.class, Integer.class, Long.class, Double.class,
-								Float.class, String.class, Boolean.class);
-					} else if (val instanceof Double) {
-						m = findMethod(setterName, object.getClass(), null, Float.class, Long.class, Integer.class, Short.class,
-								Byte.class, String.class, Boolean.class);
-					} else if (val instanceof Float) {
-						m = findMethod(setterName, object.getClass(), null, Double.class, Integer.class, Long.class, Short.class,
-								Byte.class, String.class, Boolean.class);
-					} else if (val instanceof String) {
-						m = findMethod(setterName, object.getClass(), null, Double.class, Long.class, Integer.class, Float.class,
+						m = findMethod(setterName, object.getClass(), null, Double.class, Integer.class, Float.class,
 								Short.class, Byte.class, String.class, Boolean.class);
+					} else if (val instanceof Integer) {
+						m = findMethod(setterName, object.getClass(), null, Long.class, Double.class, Float.class,
+								Short.class, Byte.class, String.class, Boolean.class);
+					} else if (val instanceof Short) {
+						m = findMethod(setterName, object.getClass(), null, Integer.class, Long.class, Double.class,
+								Float.class, Byte.class, String.class, Boolean.class);
+					} else if (val instanceof Byte) {
+						m = findMethod(setterName, object.getClass(), null, Short.class, Integer.class, Long.class,
+								Double.class, Float.class, String.class, Boolean.class);
+					} else if (val instanceof Double) {
+						m = findMethod(setterName, object.getClass(), null, Float.class, Long.class, Integer.class,
+								Short.class, Byte.class, String.class, Boolean.class);
+					} else if (val instanceof Float) {
+						m = findMethod(setterName, object.getClass(), null, Double.class, Integer.class, Long.class,
+								Short.class, Byte.class, String.class, Boolean.class);
+					} else if (val instanceof String) {
+						m = findMethod(setterName, object.getClass(), null, Double.class, Long.class, Integer.class,
+								Float.class, Short.class, Byte.class, String.class, Boolean.class);
 					} else if (val instanceof Boolean) {
-						m = findMethod(setterName, object.getClass(), null, Double.class, Long.class, Integer.class, Float.class,
-								Short.class, Byte.class, String.class);
+						m = findMethod(setterName, object.getClass(), null, Double.class, Long.class, Integer.class,
+								Float.class, Short.class, Byte.class, String.class);
 					} else if (val instanceof Map) {
 						m = findMethod(setterName, object.getClass(), null, Map.class);
 						if (m == null) {
@@ -137,12 +136,12 @@ public class ObjectMapper<T> {
 							}
 
 							/*
-							 * No exact type, Find the first setter that matches
-							 * the exact type
+							 * No exact type, Find the first setter that matches the exact type
 							 */
 							if (m == null) {
 								for (Method method : methodsUpTo) {
-									if (method.getName().equals("set" + key) && method.getParameterTypes().length == 1) {
+									if (method.getName().equals("set" + key)
+											&& method.getParameterTypes().length == 1) {
 										m = method;
 										break;
 									}
@@ -154,11 +153,15 @@ public class ObjectMapper<T> {
 
 				if (m != null) {
 					m.setAccessible(true);
-					m.invoke(object, value(val, m.getParameterTypes()[0]));
+					try {
+						m.invoke(object, value(val, m.getParameterTypes()[0]));
+					} catch (IllegalArgumentException iae) {
+						throw new IllegalArgumentException(String.format("Failed parsing %s", key), iae);
+					}
 				} else {
 					/*
-					 * If this is a map, and there is a getter, and it is a
-					 * MappedMap, fill it up processing all the elements *
+					 * If this is a map, and there is a getter, and it is a MappedMap, fill it up
+					 * processing all the elements *
 					 */
 					if (isScriptNativeArray(val)) {
 						val = ((jdk.nashorn.api.scripting.ScriptObjectMirror) val).values();
@@ -200,8 +203,8 @@ public class ObjectMapper<T> {
 							mm.put(key, val);
 						} else {
 							throw new IllegalArgumentException(
-									String.format("Could not map key %s and value %s to the object %s (object is %s)", key, val,
-											toString(), object.getClass()));
+									String.format("Could not map key %s and value %s to the object %s (object is %s)",
+											key, val, toString(), object.getClass()));
 						}
 					}
 				}

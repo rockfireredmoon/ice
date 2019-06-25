@@ -4,10 +4,16 @@
  */
 package org.iceui;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.icelib.ChannelType;
 import org.icelib.MessageParser;
 
@@ -31,9 +37,11 @@ import icetone.core.Layout.LayoutType;
 import icetone.core.Size;
 import icetone.core.layout.ScreenLayoutConstraints;
 import icetone.core.layout.mig.MigLayout;
-import icetone.extras.chooser.ColorFieldControl;
-import icetone.extras.chooser.ColorSelector;
+import icetone.extras.chooser.ColorField;
+import icetone.extras.chooser.ColorTab;
+import icetone.extras.util.ExtrasUtil;
 import icetone.extras.windows.PositionableFrame;
+import icetone.text.FontSpec;
 import icetone.xhtml.XHTMLDisplay;
 
 /**
@@ -41,6 +49,7 @@ import icetone.xhtml.XHTMLDisplay;
  * @author t0neg0d
  */
 public abstract class XChatBox extends Element {
+	final static Logger LOG = Logger.getLogger(XChatBox.class.getName());
 
 	private Object sbDefaultChannel;
 	private String yourName;
@@ -60,14 +69,13 @@ public abstract class XChatBox extends Element {
 	private int currentHistoryIndex;
 	private Element channelIndicator;
 	private String tabName;
+	private List<String> styleSheetAssets = new ArrayList<>(Arrays.asList("/Styles/IceUI/XChatBox.css"));
 
 	/**
 	 * Creates a new instance of the ChatBoxExt control
 	 * 
-	 * @param screen
-	 *            The screen control the Element is to be added to
-	 * @param position
-	 *            A Vector2f containing the x/y position of the Element
+	 * @param screen   The screen control the Element is to be added to
+	 * @param position A Vector2f containing the x/y position of the Element
 	 */
 	public XChatBox(BaseScreen screen, String tabName) {
 		this(screen, null, tabName);
@@ -76,13 +84,10 @@ public abstract class XChatBox extends Element {
 	/**
 	 * Creates a new instance of the ChatBoxExt control
 	 * 
-	 * @param screen
-	 *            The screen control the Element is to be added to
-	 * @param position
-	 *            A Vector2f containing the x/y position of the Element
-	 * @param dimensions
-	 *            A Vector2f containing the width/height dimensions of the
-	 *            Element
+	 * @param screen     The screen control the Element is to be added to
+	 * @param position   A Vector2f containing the x/y position of the Element
+	 * @param dimensions A Vector2f containing the width/height dimensions of the
+	 *                   Element
 	 */
 	public XChatBox(BaseScreen screen, Size dimensions, String tabName) {
 		this(screen, null, dimensions, tabName);
@@ -91,15 +96,11 @@ public abstract class XChatBox extends Element {
 	/**
 	 * Creates a new instance of the ChatBoxExt control
 	 * 
-	 * @param screen
-	 *            The screen control the Element is to be added to
-	 * @param UID
-	 *            A unique String identifier for the Element
-	 * @param position
-	 *            A Vector2f containing the x/y position of the Element
-	 * @param dimensions
-	 *            A Vector2f containing the width/height dimensions of the
-	 *            Element
+	 * @param screen     The screen control the Element is to be added to
+	 * @param UID        A unique String identifier for the Element
+	 * @param position   A Vector2f containing the x/y position of the Element
+	 * @param dimensions A Vector2f containing the width/height dimensions of the
+	 *                   Element
 	 */
 	public XChatBox(BaseScreen screen, String UID, Size dimensions, String tabName) {
 		this(screen, UID, null, dimensions, tabName);
@@ -108,26 +109,19 @@ public abstract class XChatBox extends Element {
 	/**
 	 * Creates a new instance of the ChatBoxExt control
 	 * 
-	 * @param screen
-	 *            The screen control the Element is to be added to
-	 * @param UID
-	 *            A unique String identifier for the Element
-	 * @param position
-	 *            A Vector2f containing the x/y position of the Element
-	 * @param dimensions
-	 *            A Vector2f containing the width/height dimensions of the
-	 *            Element
-	 * @param resizeBorders
-	 *            A Vector4f containg the border information used when resizing
-	 *            the default image (x = N, y = W, z = E, w = S)
-	 * @param defaultImg
-	 *            The default image to use for the Slider's track
+	 * @param screen        The screen control the Element is to be added to
+	 * @param UID           A unique String identifier for the Element
+	 * @param position      A Vector2f containing the x/y position of the Element
+	 * @param dimensions    A Vector2f containing the width/height dimensions of the
+	 *                      Element
+	 * @param resizeBorders A Vector4f containg the border information used when
+	 *                      resizing the default image (x = N, y = W, z = E, w = S)
+	 * @param defaultImg    The default image to use for the Slider's track
 	 */
 	public XChatBox(BaseScreen screen, String UID, Vector2f position, Size dimensions, String tabName) {
 		super(screen, UID, position, dimensions);
 
 		this.tabName = tabName;
-		// this.setIsMovable(false);
 		setIgnoreMouse(true);
 		this.setResizable(false);
 
@@ -136,27 +130,6 @@ public abstract class XChatBox extends Element {
 		chatForm = new Form(screen);
 
 		saChatArea = new XHTMLDisplay(screen);
-
-		// saChatArea = new ScrollPanel(screen, UID + ":ChatArea",
-		// Vector2f.ZERO, LUtil.LAYOUT_SIZE, Vector4f.ZERO, null);
-		// saChatArea.setTextPadding(0);
-		// saChatArea.setClipPadding(0);
-		// saChatArea.setResizeBorders(0);
-		// saChatArea.setIgnoreMouseLeftButton(true);
-		// saChatArea.getScrollBounds().setIgnoreMouseLeftButton(true);
-		// saChatArea.getScrollableArea().setIgnoreMouseLeftButton(true);
-		// saChatArea.setIsResizable(false);
-		// // saChatArea.setIsMovable(false);
-		// ((WrappingLayout)
-		// saChatArea.getScrollContentLayout()).setOrientation(Element.Orientation.HORIZONTAL);
-		// ((WrappingLayout) saChatArea.getScrollContentLayout()).setFill(true);
-		// // final float insets =
-		// // screen.getStyle("ChatBox").getFloat("scrollAreaInsets");
-		// // ((WrappingLayout)
-		// saChatArea.getScrollContentLayout()).setMargin(new
-		// // Vector4f(insets,insets,insets,insets));
-		// saChatArea.setText("");
-
 		addElement(saChatArea, "span 2, wrap, growx");
 
 		channelIndicator = new Element(screen);
@@ -191,6 +164,10 @@ public abstract class XChatBox extends Element {
 		// addElement(new ScrollPanel(screen, tfChatInput), "growx");
 		addElement(tfChatInput, "growx");
 		chatForm.addFormElement(tfChatInput);
+	}
+
+	public List<String> getStyleSheetAssets() {
+		return styleSheetAssets;
 	}
 
 	public void setTabName(String tabName) {
@@ -235,10 +212,9 @@ public abstract class XChatBox extends Element {
 					cb.setText(channel.getFilterDisplayText());
 					content.addElement(cb);
 
-					ColorFieldControl cfc = new ColorFieldControl(screen, getColorForCommand(channel.getCommand()),
-							false, false);
+					ColorField cfc = new ColorField(screen, getColorForCommand(channel.getCommand()), false, false);
 					cfc.onChange(evt -> changeChannelColor(channel, evt.getNewValue()));
-					cfc.setTabs(ColorSelector.ColorTab.PALETTE, ColorSelector.ColorTab.WHEEL);
+					cfc.setTabs(ColorTab.WHEEL, ColorTab.RGB);
 					cfc.setChooserText("Choose colour for " + channel.getFilterDisplayText());
 					content.addElement(cfc);
 				}
@@ -316,13 +292,11 @@ public abstract class XChatBox extends Element {
 	/**
 	 * Send a message on the currentl channel.
 	 * 
-	 * @param message
-	 *            message
+	 * @param message message
 	 */
 	public void sendMsg(String input) {
 		if (input.length() > 0) {
 			Object command = sbDefaultChannel;
-			System.out.println("sending: " + input);
 			onSendMsg(command, input);
 			tfChatInput.setText("");
 			focusInput();
@@ -337,14 +311,10 @@ public abstract class XChatBox extends Element {
 	/**
 	 * Call this method to display a message
 	 * 
-	 * @param sender
-	 *            sender of the message (null for 'system' type messages)
-	 * @param recipient
-	 *            recipient of the message (null for 'global' type messages)
-	 * @param command
-	 *            The object associated with the appropriate ChatChannel
-	 * @param msg
-	 *            The String message to display
+	 * @param sender    sender of the message (null for 'system' type messages)
+	 * @param recipient recipient of the message (null for 'global' type messages)
+	 * @param command   The object associated with the appropriate ChatChannel
+	 * @param msg       The String message to display
 	 */
 	public void receiveMsg(String sender, String recipient, Object command, String msg) {
 		ChatChannel channel = null;
@@ -369,18 +339,9 @@ public abstract class XChatBox extends Element {
 	}
 
 	@Override
-	public BaseElement setFontSize(float fontSize) {
+	public BaseElement setFont(FontSpec font) {
 		try {
-			return super.setFontSize(fontSize);
-		} finally {
-			rebuildChat();
-		}
-	}
-
-	@Override
-	public BaseElement setFontFamily(String fontFamily) {
-		try {
-			return super.setFontFamily(fontFamily);
+			return super.setFont(font);
 		} finally {
 			rebuildChat();
 		}
@@ -392,16 +353,7 @@ public abstract class XChatBox extends Element {
 
 	protected void rebuildChat() {
 		final StringBuilder bui = new StringBuilder();
-		bui.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-		bui.append("<!DOCTYPE html>\n");
-		bui.append("<html xmlns=\"http://www.w3.org/1999/xhtml\">\n");
-		bui.append("<head>");
-		bui.append(String.format(
-				"<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\" title=\"Style\" media=\"screen\" />",
-				"/Interface/Styles/Gold/Chat/chat.css"));
-		bui.append("</head>");
-		bui.append("<body style=\"background: inherit; ");
-		bui.append("\">\n");
+		appendBodyHeader(bui);
 		for (ChatMessage cm : chatMessages) {
 			MessageParser mp = new MessageParser();
 			mp.parse(cm.getMsg());
@@ -412,7 +364,7 @@ public abstract class XChatBox extends Element {
 			final ChannelType channelType = (ChannelType) cm.channel.getCommand();
 			if (!channelType.isChat()) {
 				if (showChannelLabels) {
-					channelLabel = "[" + cm.getChannel().getName() + "]:";
+					channelLabel = "[" + StringEscapeUtils.escapeXml(cm.getChannel().getName()) + "]:";
 				}
 			} else {
 				channelLabel = cm.sender == null ? (yourName == null ? "You" : yourName) : cm.sender;
@@ -437,7 +389,7 @@ public abstract class XChatBox extends Element {
 
 			// Create text
 			StringBuilder txt = new StringBuilder();
-			txt.append(channelLabel);
+			txt.append(StringEscapeUtils.escapeXml(channelLabel));
 			for (MessageParser.MessageElement el : els) {
 				switch (el.getType()) {
 				case LINK:
@@ -447,33 +399,67 @@ public abstract class XChatBox extends Element {
 				}
 			}
 
-			bui.append("<p style=\"color: #");
+			bui.append("<p class=\"chat-message\" style=\"color: #");
 
 			ColorRGBA cmdcol = getColorForCommand(cm.getChannel().getCommand());
 			bui.append(IceUI.toHexNumber(cmdcol));
 			bui.append(";");
-			if (getFontFamily() != null) {
-				bui.append("font-family: '");
-				bui.append(FilenameUtils.getBaseName(getFontFamily()));
-				bui.append("';");
-			}
-			if (getFontSize() > 1) {
-				bui.append("font-size: ");
-				bui.append((int) getFontSize());
-				bui.append("pt;");
-			}
+			FontSpec font = calcFont(this);
+			bui.append("font-family: '");
+			bui.append(FilenameUtils.getBaseName(font.getFamily()));
+			bui.append("';");
+			bui.append("font-size: ");
+			bui.append((int) font.getSize());
+			bui.append("pt;");
 			bui.append("\">");
 			if (bold)
 				bui.append("<strong>");
-			bui.append(txt.toString());
+			bui.append(ExtrasUtil.stripControlCodesForXHTML(StringEscapeUtils.escapeXml(txt.toString())));
 			if (bold)
 				bui.append("</strong>");
 			bui.append("</p>");
 		}
+		appendBodyTail(bui);
+		try {
+			saChatArea.setDocumentFromString(bui.toString(), "asset://chat.html");
+		} catch (Exception e) {
+			LOG.log(Level.SEVERE, "Failed to parse HTML built from chat text.", e);
+			bui.setLength(0);
+			appendBodyHeader(bui);
+			bui.append("<h1>Error.</h1>");
+			if (e.getMessage() != null) {
+				bui.append("<p>");
+				bui.append(StringEscapeUtils.escapeXml(e.getMessage()));
+				bui.append("</p>");
+			}
+			bui.append("<pre><code>");
+			StringWriter sw = new StringWriter();
+			e.printStackTrace(new PrintWriter(sw, true));
+			bui.append(sw.toString());
+			bui.append("</code></pre>");
+			appendBodyTail(bui);
+			saChatArea.setDocumentFromString(bui.toString(), "asset://chat.html");
+		}
+		saChatArea.scrollToBottom();
+	}
+
+	protected void appendBodyTail(final StringBuilder bui) {
 		bui.append("</body>\n");
 		bui.append("</html>\n");
-		saChatArea.setDocumentFromString(bui.toString(), "asset://chat.html");
-		saChatArea.scrollToBottom();
+	}
+
+	protected void appendBodyHeader(final StringBuilder bui) {
+		bui.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+		bui.append("<!DOCTYPE html>\n");
+		bui.append("<html xmlns=\"http://www.w3.org/1999/xhtml\">\n");
+		bui.append("<head>");
+		for (String ss : styleSheetAssets) {
+			bui.append(String.format("<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\" title=\"Style " + ss
+					+ "\" media=\"screen\" />", ss));
+		}
+		bui.append("</head>");
+		bui.append("<body class=\"chat\" style=\"background: inherit; ");
+		bui.append("\">\n");
 	}
 
 	private void clearHistory() {
@@ -594,19 +580,16 @@ public abstract class XChatBox extends Element {
 	/**
 	 * Abstract event method called when the user sends a message
 	 * 
-	 * @param command
-	 *            The Object associated with the appropriate ChatChannel for the
-	 *            message
-	 * @param msg
-	 *            The String message to display
+	 * @param command The Object associated with the appropriate ChatChannel for the
+	 *                message
+	 * @param msg     The String message to display
 	 */
 	public abstract void onSendMsg(Object command, String msg);
 
 	/**
 	 * Adds a ChatChannel that messages are display under and are filtered by
 	 * 
-	 * @param channel
-	 *            channel
+	 * @param channel channel
 	 */
 	public final void addChatChannel(ChannelDefinition def) {
 		ChatChannel channel = def.createChannel();
@@ -664,8 +647,7 @@ public abstract class XChatBox extends Element {
 	/**
 	 * Set the current channel
 	 * 
-	 * @param channel
-	 *            channel
+	 * @param channel channel
 	 */
 	public void setChannelByCommand(Object command) {
 		sbDefaultChannel = command;

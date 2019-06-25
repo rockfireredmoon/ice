@@ -44,8 +44,8 @@ import icetone.controls.scrolling.ScrollPanel;
 import icetone.core.BaseElement;
 import icetone.core.BaseScreen;
 import icetone.core.Orientation;
+import icetone.core.event.mouse.MouseUIButtonEvent;
 import icetone.core.BaseScreen;
-import icetone.core.event.MouseUIButtonEvent;
 import icetone.core.layout.WrappingLayout;
 
 /**

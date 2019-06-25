@@ -121,6 +121,7 @@ public class ElementStyle {
 	}
 
 	public static Button arrowButton(Button button, Border direction) {
+		button.getButtonIcon().removeStyleClass("button-icon icon-up icon-down icon-back icon-forward");
 		switch (direction) {
 		case NORTH:
 			button.getButtonIcon().addStyleClass("button-icon icon-up");

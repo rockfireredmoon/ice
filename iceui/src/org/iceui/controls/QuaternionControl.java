@@ -1,17 +1,15 @@
 package org.iceui.controls;
 
-import com.jme3.math.ColorRGBA;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector2f;
 
 import icetone.controls.lists.FloatRangeSpinnerModel;
 import icetone.controls.lists.Spinner;
 import icetone.controls.text.Label;
-import icetone.core.BaseElement;
 import icetone.core.BaseScreen;
+import icetone.core.Element;
 import icetone.core.Form;
 import icetone.core.Orientation;
-import icetone.core.Element;
 import icetone.core.layout.mig.MigLayout;
 
 public abstract class QuaternionControl extends Element {
@@ -25,13 +23,12 @@ public abstract class QuaternionControl extends Element {
 	private Spinner<Float> w;
 	private Spinner<Float> a;
 
-	public QuaternionControl(BaseScreen screen, float min, float max, float inc, Quaternion initial,
-			boolean all) {
+	public QuaternionControl(BaseScreen screen, float min, float max, float inc, Quaternion initial, boolean all) {
 		this(screen, min, max, inc, initial, false, all);
 	}
 
-	public QuaternionControl(BaseScreen screen, float min, float max, float inc, Quaternion initial,
-			boolean cycle, boolean all) {
+	public QuaternionControl(BaseScreen screen, float min, float max, float inc, Quaternion initial, boolean cycle,
+			boolean all) {
 		this(screen, null, min, max, inc, initial, cycle, all);
 	}
 
@@ -147,45 +144,6 @@ public abstract class QuaternionControl extends Element {
 		form.addFormElement(w);
 	}
 
-	@Override
-	public BaseElement setFont(String fontPath) {
-		super.setFont(fontPath);
-		if (a != null) {
-			a.setFont(fontPath);
-		}
-		x.setFont(fontPath);
-		y.setFont(fontPath);
-		z.setFont(fontPath);
-		w.setFont(fontPath);
-		return this;
-	}
-
-	@Override
-	public BaseElement setFontSize(float fontSize) {
-		super.setFontSize(fontSize);
-		if (a != null) {
-			a.setFontSize(fontSize);
-		}
-		x.setFontSize(fontSize);
-		y.setFontSize(fontSize);
-		z.setFontSize(fontSize);
-		w.setFontSize(fontSize);
-		return this;
-	}
-
-	@Override
-	public BaseElement setFontColor(ColorRGBA fontColor) {
-		super.setFontColor(fontColor);
-		if (a != null) {
-			a.setFontColor(fontColor);
-		}
-		x.setFontColor(fontColor);
-		y.setFontColor(fontColor);
-		z.setFontColor(fontColor);
-		w.setFontColor(fontColor);
-		return this;
-	}
-
 	public void setInterval(float callsPerSeconds) {
 		if (a != null) {
 			a.setInterval(callsPerSeconds);
@@ -210,7 +168,7 @@ public abstract class QuaternionControl extends Element {
 	}
 
 	private void createLabel(BaseScreen screen, String text) {
-		Label label = new Label(text, screen);
+		Label label = new Label(screen, text);
 		label.setText(text);
 		addElement(label, "wrap");
 	}

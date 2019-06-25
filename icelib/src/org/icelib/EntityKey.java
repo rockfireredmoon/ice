@@ -5,6 +5,7 @@
  */
 package org.icelib;
 
+import java.io.File;
 import java.io.Serializable;
 
 public class EntityKey implements Comparable<EntityKey>, Serializable {
@@ -33,6 +34,16 @@ public class EntityKey implements Comparable<EntityKey>, Serializable {
 	 */
 	public EntityKey(String name) {
 		setName(name);
+	}
+	
+	public boolean isExistingExternal(File assetsDir) {
+
+		// The folder for the item type
+		File typeDir = new File(assetsDir, Icelib.toEnglish(getType()));
+
+		// The item folder
+		File itemDir = new File(typeDir, String.format("%s-%s", Icelib.toEnglish(getType()), getItem()));
+		return itemDir.exists();
 	}
 
 	public void setName(String name) {

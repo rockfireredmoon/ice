@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -17,7 +18,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Logger;
 
-import javax.management.RuntimeErrorException;
 import javax.script.Bindings;
 import javax.script.Compilable;
 import javax.script.CompiledScript;
@@ -28,18 +28,10 @@ import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.icelib.Icelib;
-import org.icescripting.squirrel.BuiltIn;
-import org.icesquirrel.jsr223.BindingsAdapter;
-//import org.icesquirrel.runtime.SquirrelTable;
-
-import org.icesquirrel.runtime.SquirrelExecutionContext;
 
 import com.jme3.asset.AssetNotFoundException;
-import com.jme3.math.ColorRGBA;
-import com.jme3.math.Quaternion;
-import com.jme3.math.Vector2f;
-import com.jme3.math.Vector3f;
 
 public class Scripts {
 	// extends SquirrelTable {
@@ -308,7 +300,13 @@ public class Scripts {
 				InputStream in = loader.load(scriptPath);
 				LOG.info(String.format("Compiling script %s", scriptPath));
 				// Note, the input stream is closed by the compiler itself
+
 				CompiledScript cs = ce.compile(new InputStreamReader(in));
+				
+//				String scripts = IOUtils.toString(in);
+//				System.err.println(scripts);
+//				CompiledScript cs = ce.compile(new StringReader(scripts));
+				
 				scriptCache.put(scriptPath, cs);
 				loaded.add(pathLessExtension);
 				return engineBindings == null ? cs.eval() : cs.eval(engineBindings);

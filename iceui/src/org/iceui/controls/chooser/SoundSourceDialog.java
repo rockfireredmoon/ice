@@ -64,7 +64,7 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog<String> {
 			String[] statusList = statusListString.split("\n");
 			for (String s : statusList) {
 				if (s.startsWith("http:") || s.startsWith("https:")) {
-					textField.addListItem(s, s);
+					textField.addComboItem(s, s);
 				}
 			}
 
@@ -117,7 +117,7 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog<String> {
 				sb.append("\n");
 			}
 			sb.append(url);
-			textField.addListItem(url, url);
+			textField.addComboItem(url, url);
 			pref.put(prefKey + STREAM_URLS, sb.toString());
 			textField.runAdjusting(() -> textField.setSelectedByValue(sb.toString()));
 			textField.getTextField().setCaretPositionToStart();
@@ -160,7 +160,7 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog<String> {
 			useStreamURL.setText("Stream from URL");
 			bg.addButton(useStreamURL);
 			content.addElement(useStreamURL, "span 2, growx");
-			content.addElement(new Label("URL:", screen), "shrink 0");
+			content.addElement(new Label(screen, "URL:"), "shrink 0");
 			content.addElement(streamURL = new URLField(screen) {
 				@Override
 				void onURLPlay(String url) {
@@ -174,7 +174,7 @@ public abstract class SoundSourceDialog extends AbstractChooserDialog<String> {
 			useDownloadURL.setText("Download from URL");
 			bg.addButton(useDownloadURL);
 			content.addElement(useDownloadURL, "span 2, growx");
-			content.addElement(new Label("URL:", screen), "shrink 0");
+			content.addElement(new Label(screen, "URL:"), "shrink 0");
 			content.addElement(downloadURL = new URLField(screen) {
 				@Override
 				void onURLPlay(String url) {

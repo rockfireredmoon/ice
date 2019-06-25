@@ -1,9 +1,12 @@
 package org.iceui.controls.chooser;
 
+import org.icelib.Icelib;
+
 import com.jme3.material.MatParam;
 import com.jme3.material.MatParamTexture;
 import com.jme3.material.Material;
 import com.jme3.material.MaterialList;
+import com.jme3.texture.Image;
 
 import icetone.controls.buttons.SelectableItem;
 import icetone.core.BaseScreen;
@@ -18,6 +21,7 @@ public class MaterialView extends AbstractButtonView<String> {
 	@Override
 	protected void configureButton(SelectableItem selectable, final String path) {
 		super.configureButton(selectable, path);
+		selectable.setText(Icelib.getBasename(path));
 
 		// Load the material to try and find a texture that can be used
 		MaterialList materialList = getMaterialList(path);
@@ -25,13 +29,19 @@ public class MaterialView extends AbstractButtonView<String> {
 			Material mat = materialList.get(path);
 			for (MatParam p : mat.getParams()) {
 				if (p instanceof MatParamTexture) {
-					final String texPath = ((MatParamTexture) p).getTextureValue().getName();
+					MatParamTexture mp = (MatParamTexture) p;
+					final String texPath = mp.getTextureValue().getName();
 					if (texPath != null) {
 						selectable.setButtonIcon(texPath);
-						break;
+						return;
+					}
+					else {
+						selectable.getButtonIcon().setTexture(mp.getTextureValue());
+						return;
 					}
 				}
 			}
+			selectable.setButtonIcon("/bgx.jpg");
 		}
 	}
 
